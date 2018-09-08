@@ -40,12 +40,6 @@
         } \
     } while(0)
 
-//#define OMT_LOG(_level_, _fmt_, ...) do { \
-//        if ((_level_) <= [OCMethodTrace getInstance].logLevel) { \
-//            [[OCMethodTrace getInstance].logDelegate log:OMTLogLevelDebug format:(_fmt_), ## __VA_ARGS__]; \
-//        } \
-//    } while(0)
-
 #define OMT_LOGE(fmt, ...)  OMT_LOG(OMTLogLevelError, (fmt), ## __VA_ARGS__)
 #define OMT_LOGD(fmt, ...)  OMT_LOG(OMTLogLevelDebug, (fmt), ## __VA_ARGS__)
 
