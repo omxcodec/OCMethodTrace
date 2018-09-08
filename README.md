@@ -1,6 +1,6 @@
 # OCMethodTrace - Trace Any Objective-C Method Calls
 
-跟踪打印Objective-C实例(类)中任何方法
+跟踪打印Objective-C任何实例(类)方法
 
 ## 功能：
 1. 支持任意OC实例(类)方法的跟踪打印
