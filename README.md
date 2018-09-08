@@ -13,7 +13,7 @@
 3. 增加示例程序和单元测试
 
 ## 感谢：
-https://github.com/qhd/ANYMethodLog
-https://github.com/SatanWoo/MainThreadChecker.git
+1. https://github.com/qhd/ANYMethodLog
+2. https://github.com/SatanWoo/MainThreadChecker.git
 
 欢迎提Issues和Pull requests，如有问题，可以联系 Michael Chen (omxcodec@gmail.com)
