@@ -11,7 +11,6 @@
 1. 支持更多架构(当前仅支持arm64)
 2. 完善struct类型参数的自动解析
 3. 跳板实现改用更简单的Objc原生方法"IMP imp_implementationWithBlock(id block) + 内联汇编"的模式
-4. 增加示例程序和单元测试
 
 ## 感谢：
 1. https://github.com/qhd/ANYMethodLog
