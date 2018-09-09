@@ -2,7 +2,7 @@
  * OCMethodTrace.h
  * OCMethodTrace
  *
- * https://github.com/omxcodec/OCMethodTrace
+ * https://github.com/omxcodec/OCMethodTrace.git
  *
  * Copyright (C) 2018 Michael Chen <omxcodec@gmail.com>
  *
