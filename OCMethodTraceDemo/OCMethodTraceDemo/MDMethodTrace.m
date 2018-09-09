@@ -16,7 +16,20 @@
 
 #define MDLog(fmt, ...) NSLog((@"[MethodTrace] " fmt), ##__VA_ARGS__)
 
+@interface MDMethodTrace () <OCMethodTraceLogDelegate>
+
+@end
+
 @implementation MDMethodTrace : NSObject
+
++ (instancetype)sharedInstance {
+    static MDMethodTrace *sharedInstance = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        sharedInstance = [[MDMethodTrace alloc] init];
+    });
+    return sharedInstance;
+}
 
 +(void)addClassTrace:(NSString *)className{
     [self addClassTrace:className methodList:nil];
@@ -61,11 +74,28 @@
     }
 }
 
+#pragma mark - OCMethodTraceLogDelegate
+
+- (void)log:(OMTLogLevel)level format:(NSString *)format, ...
+{
+    va_list args;
+    if (format) {
+        va_start(args, format);
+        NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
+        va_end(args);
+        
+        MDLog(@"%@", message);
+    }
+}
+
 @end
 
 static __attribute__((constructor)) void entry(){
     MDConfigManager * configManager = [MDConfigManager sharedInstance];
     NSDictionary* content = [configManager readConfigByKey:MDCONFIG_TRACE_KEY];
+    
+    [[OCMethodTrace getInstance] setLogDelegate:[MDMethodTrace sharedInstance]];
+    [[OCMethodTrace getInstance] setLogLevel:OMTLogLevelDebug];
     
     if(content && [content valueForKey:MDCONFIG_ENABLE_KEY] && [content[MDCONFIG_ENABLE_KEY] boolValue]){
         NSDictionary* classListDictionary = [content valueForKey:MDCONFIG_CLASS_LIST];
