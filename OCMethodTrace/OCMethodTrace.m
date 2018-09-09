@@ -318,7 +318,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 
 - (void)initSupportedTypeDic
 {
-    self.supportedTypeDic =@{[NSString stringWithUTF8String:@encode(char)] : @"(char)",
+    self.supportedTypeDic = @{[NSString stringWithUTF8String:@encode(char)] : @"(char)",
                               [NSString stringWithUTF8String:@encode(int)] : @"(int)",
                               [NSString stringWithUTF8String:@encode(short)] : @"(short)",
                               [NSString stringWithUTF8String:@encode(long)] : @"(long)",
@@ -567,7 +567,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     const char *originTypes = method_getTypeEncoding(originMethod);
 
     // 3 转发：旧方法跳转到转发IMP
-    // 使用比较另类的"类与方法间隔符"，如"->"。如果使用"_"，有可能会导致冲突，如系统方法类"__CFNotification"就会异常
+    // 使用比较另类的"类与方法间隔符"，如"->"。如果使用"_"，有可能会导致冲突，如系统内部类"__CFNotification"就会异常
     SEL forwardingSEL = NSSelectorFromString([NSString stringWithFormat:@"%@%@->%@",
                                               OMTMessageTempPrefix,
                                               NSStringFromClass(cls),
@@ -614,9 +614,9 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     Class originClass = NSClassFromString(originClassName);
     SEL originSelector = NSSelectorFromString(originSelectorName);
     
-    // XXX before和after回调输出日志会调用[obj description]，而description方法有可能调用类内部别的方法，最后造成递归调用。
+    // XXX before和after回调输出日志会调用[obj description]，而description方法有可能调用类被trace的方法，最后造成递归调用。
     // 解决: 查看函数调用栈，如果发现存在OMTBlock的如下两个方法，说明就是description导致的递归调用。发现递归就跳过runBefore
-    //      和runAfter调用，而是直接调用invoke！需要注意的是，这个查询堆栈的操作比较损失性能！
+    //      和runAfter调用，直接调用invoke！需要注意的是，这个查询堆栈的操作比较损失性能！
     BOOL recursiveCallExists = [self.class recursiveCallExistsAtFuncArray:@[OMTTraceRunBeforeSel, OMTTraceRunAfterSel]];
     OMTBlock *block = [self blockWithTarget:invocation.target];
     NSDate *start = nil, *end = nil;
