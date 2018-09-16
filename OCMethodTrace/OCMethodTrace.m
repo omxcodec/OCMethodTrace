@@ -397,7 +397,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     // 跳过自身方法，所以从1开始
     for (int i = 1; i < frames && strs; i++) {
         NSString *frame = [NSString stringWithUTF8String:strs[i]];
-        // NSLog(@"frame[%d]: %@", i, frame);
+        // OMT_LOGD(@"frame[%d]: %@", i, frame);
         for (NSString *func in funcArray) {
             if ([frame containsString:func]) {
                 exists = YES;
@@ -672,13 +672,13 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 {
     Method method = class_getInstanceMethod(object_getClass(self.target), self.selector);
     if (NULL == method) {
-        NSLog(@"No Method, target:%@ selector:%@", self.target, NSStringFromSelector(self.selector));
+        OMT_LOGE(@"No Method, target:%@ selector:%@", self.target, NSStringFromSelector(self.selector));
         assert(NULL != method);
     }
     
     const char *types = method_getTypeEncoding(method);
     if (NULL == types) {
-        NSLog(@"No Types, target:%@ selector:%@", self.target, NSStringFromSelector(self.selector));
+        OMT_LOGE(@"No Types, target:%@ selector:%@", self.target, NSStringFromSelector(self.selector));
         assert(NULL != types);
     }
     
