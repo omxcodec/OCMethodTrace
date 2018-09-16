@@ -14,5 +14,6 @@
 ## 感谢：
 1. https://github.com/qhd/ANYMethodLog
 2. https://github.com/SatanWoo/MainThreadChecker.git
+3. https://opensource.apple.com/tarballs/objc4/objc4-723.tar.gz
 
 欢迎提Issues和Pull requests，如有问题，可以联系 Michael Chen (omxcodec@gmail.com)
