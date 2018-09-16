@@ -61,17 +61,41 @@
             for (int i = 0; i < deep; i++) {
                 [deepString appendString:@"-"];
             }
-            NSLog(@"%@[%@ %@]", deepString , target, selectorString);
+            
+            // [obj class]则分两种情况：
+            // 1 当obj为实例对象时，[obj class]中class是实例方法：- (Class)class，返回的obj对象中的isa指针；
+            // 2 当obj为类对象（包括元类和根类以及根元类）时，调用的是类方法：+ (Class)class，返回的结果为其本身。
+            NSString *prefix = target == [target class] ?  @"+" : @"-";
+            // target不是强引用，如果打印接口异步，可能未实际调用description就被释放了，所以提前获取desc，保证线程安全
+            NSString *description = [MDMethodTrace targetDescription:target cls:cls];
+            if ([target class] != [cls class]) {
+                // 如果是子类调用基类方法，则()内打印基类名
+                NSLog(@"%@%@[%@(%@) %@]", deepString, prefix, description, NSStringFromClass(cls), selectorString);
+            } else {
+                NSLog(@"%@%@[%@ %@]", deepString, prefix, description, selectorString);
+            }
         } after:^(id target, Class cls, SEL sel, NSArray *args, NSTimeInterval interval, NSInteger deep, id retValue) {
             NSMutableString *deepString = [NSMutableString new];
             for (int i = 0; i < deep; i++) {
                 [deepString appendString:@"-"];
             }
-            NSLog(@"%@ret:%@", deepString, retValue);
+            
+            NSString *prefix = target == [target class] ?  @"+" : @"-";
+            NSLog(@"%@%@ret:%@", deepString, prefix, retValue);
         }];
     }else{
         MDLog(@"canot find class %@", className);
     }
+}
+
++ (NSString *)targetDescription:(id)target cls:(Class)cls
+{
+    BOOL useTargetDescription = YES;
+    // 过滤掉一些异常类的description方法
+    if ([NSStringFromClass(cls) isEqualToString:@"__CFNotification"]) {
+        useTargetDescription = NO;
+    }
+    return useTargetDescription ? [target description] : [NSString stringWithFormat:@"<%@: %p>", NSStringFromClass(cls), target];
 }
 
 #pragma mark - OCMethodTraceLogDelegate
