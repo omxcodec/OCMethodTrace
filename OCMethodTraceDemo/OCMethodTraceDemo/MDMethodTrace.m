@@ -70,9 +70,9 @@
             NSString *description = [MDMethodTrace targetDescription:target cls:cls];
             if ([target class] != [cls class]) {
                 // 如果是子类调用基类方法，则()内打印基类名
-                NSLog(@"%@%@[%@(%@) %@]", deepString, prefix, description, NSStringFromClass(cls), selectorString);
+                MDLog(@"%@%@[%@(%@) %@]", deepString, prefix, description, NSStringFromClass(cls), selectorString);
             } else {
-                NSLog(@"%@%@[%@ %@]", deepString, prefix, description, selectorString);
+                MDLog(@"%@%@[%@ %@]", deepString, prefix, description, selectorString);
             }
         } after:^(id target, Class cls, SEL sel, NSArray *args, NSTimeInterval interval, NSInteger deep, id retValue) {
             NSMutableString *deepString = [NSMutableString new];
@@ -81,7 +81,7 @@
             }
             
             NSString *prefix = target == [target class] ?  @"+" : @"-";
-            NSLog(@"%@%@ret:%@", deepString, prefix, retValue);
+            MDLog(@"%@%@ret:%@", deepString, prefix, retValue);
         }];
     }else{
         MDLog(@"canot find class %@", className);
