@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4C09CF26214DFFBD00870465 /* a1a2-selectortramps-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF1C214DFFBD00870465 /* a1a2-selectortramps-arm64.s */; };
+		4C09CF27214DFFBD00870465 /* a2a3-selectortramps-arm.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF1D214DFFBD00870465 /* a2a3-selectortramps-arm.s */; };
+		4C09CF28214DFFBD00870465 /* selectortramps-util.mac in Resources */ = {isa = PBXBuildFile; fileRef = 4C09CF1F214DFFBD00870465 /* selectortramps-util.mac */; };
+		4C09CF29214DFFBD00870465 /* a1a2-selectortramps-arm.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF20214DFFBD00870465 /* a1a2-selectortramps-arm.s */; };
+		4C09CF2A214DFFBD00870465 /* OCSelectorTrampolines.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF21214DFFBD00870465 /* OCSelectorTrampolines.mm */; };
+		4C09CF2B214DFFBD00870465 /* a2a3-selectortramps-x86_64.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF22214DFFBD00870465 /* a2a3-selectortramps-x86_64.s */; };
+		4C09CF2C214DFFBD00870465 /* a1a2-selectortramps-x86_64.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF23214DFFBD00870465 /* a1a2-selectortramps-x86_64.s */; };
+		4C09CF2D214DFFBD00870465 /* a1a2-selectortramps-i386.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF24214DFFBD00870465 /* a1a2-selectortramps-i386.s */; };
+		4C09CF2E214DFFBD00870465 /* a2a3-selectortramps-i386.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF25214DFFBD00870465 /* a2a3-selectortramps-i386.s */; };
 		4CB2B78E2144BC9F00474F3B /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B78D2144BC9F00474F3B /* AppDelegate.m */; };
 		4CB2B7912144BC9F00474F3B /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7902144BC9F00474F3B /* ViewController.m */; };
 		4CB2B7942144BC9F00474F3B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4CB2B7922144BC9F00474F3B /* Main.storyboard */; };
@@ -15,8 +24,6 @@
 		4CB2B79C2144BCA000474F3B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B79B2144BCA000474F3B /* main.m */; };
 		4CB2B7A62144BCA000474F3B /* OCMethodTraceDemoTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7A52144BCA000474F3B /* OCMethodTraceDemoTests.m */; };
 		4CB2B7B62144BEDE00474F3B /* OCMethodTrace.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7B12144BEDD00474F3B /* OCMethodTrace.m */; };
-		4CB2B7B72144BEDE00474F3B /* wzq_bridge_arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7B22144BEDD00474F3B /* wzq_bridge_arm64.s */; };
-		4CB2B7B82144BEDE00474F3B /* imp_bridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7B32144BEDD00474F3B /* imp_bridge.m */; };
 		4CB2B7BD2144BEF200474F3B /* MDMethodTrace.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7BB2144BEF200474F3B /* MDMethodTrace.m */; };
 		4CB2B7BE2144BEF200474F3B /* MDConfigManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7BC2144BEF200474F3B /* MDConfigManager.m */; };
 		4CB2B7C02144BF6900474F3B /* MDConfig.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4CB2B7BF2144BF6900474F3B /* MDConfig.plist */; };
@@ -35,6 +42,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4C09CF1C214DFFBD00870465 /* a1a2-selectortramps-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a1a2-selectortramps-arm64.s"; sourceTree = "<group>"; };
+		4C09CF1D214DFFBD00870465 /* a2a3-selectortramps-arm.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a2a3-selectortramps-arm.s"; sourceTree = "<group>"; };
+		4C09CF1E214DFFBD00870465 /* OCSelectorTrampolines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OCSelectorTrampolines.h; sourceTree = "<group>"; };
+		4C09CF1F214DFFBD00870465 /* selectortramps-util.mac */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "selectortramps-util.mac"; sourceTree = "<group>"; };
+		4C09CF20214DFFBD00870465 /* a1a2-selectortramps-arm.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a1a2-selectortramps-arm.s"; sourceTree = "<group>"; };
+		4C09CF21214DFFBD00870465 /* OCSelectorTrampolines.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = OCSelectorTrampolines.mm; sourceTree = "<group>"; };
+		4C09CF22214DFFBD00870465 /* a2a3-selectortramps-x86_64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a2a3-selectortramps-x86_64.s"; sourceTree = "<group>"; };
+		4C09CF23214DFFBD00870465 /* a1a2-selectortramps-x86_64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a1a2-selectortramps-x86_64.s"; sourceTree = "<group>"; };
+		4C09CF24214DFFBD00870465 /* a1a2-selectortramps-i386.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a1a2-selectortramps-i386.s"; sourceTree = "<group>"; };
+		4C09CF25214DFFBD00870465 /* a2a3-selectortramps-i386.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a2a3-selectortramps-i386.s"; sourceTree = "<group>"; };
 		4CB2B7892144BC9F00474F3B /* OCMethodTraceDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OCMethodTraceDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4CB2B78C2144BC9F00474F3B /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		4CB2B78D2144BC9F00474F3B /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -49,10 +66,7 @@
 		4CB2B7A52144BCA000474F3B /* OCMethodTraceDemoTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OCMethodTraceDemoTests.m; sourceTree = "<group>"; };
 		4CB2B7A72144BCA000474F3B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4CB2B7B12144BEDD00474F3B /* OCMethodTrace.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OCMethodTrace.m; sourceTree = "<group>"; };
-		4CB2B7B22144BEDD00474F3B /* wzq_bridge_arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = wzq_bridge_arm64.s; sourceTree = "<group>"; };
-		4CB2B7B32144BEDD00474F3B /* imp_bridge.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = imp_bridge.m; sourceTree = "<group>"; };
 		4CB2B7B42144BEDD00474F3B /* OCMethodTrace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OCMethodTrace.h; sourceTree = "<group>"; };
-		4CB2B7B52144BEDD00474F3B /* imp_bridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imp_bridge.h; sourceTree = "<group>"; };
 		4CB2B7B92144BEF200474F3B /* MDMethodTrace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MDMethodTrace.h; sourceTree = "<group>"; };
 		4CB2B7BA2144BEF200474F3B /* MDConfigManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MDConfigManager.h; sourceTree = "<group>"; };
 		4CB2B7BB2144BEF200474F3B /* MDMethodTrace.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MDMethodTrace.m; sourceTree = "<group>"; };
@@ -140,11 +154,18 @@
 		4CB2B7B02144BEDD00474F3B /* OCMethodTrace */ = {
 			isa = PBXGroup;
 			children = (
-				4CB2B7B52144BEDD00474F3B /* imp_bridge.h */,
-				4CB2B7B32144BEDD00474F3B /* imp_bridge.m */,
+				4C09CF20214DFFBD00870465 /* a1a2-selectortramps-arm.s */,
+				4C09CF1C214DFFBD00870465 /* a1a2-selectortramps-arm64.s */,
+				4C09CF24214DFFBD00870465 /* a1a2-selectortramps-i386.s */,
+				4C09CF23214DFFBD00870465 /* a1a2-selectortramps-x86_64.s */,
+				4C09CF1D214DFFBD00870465 /* a2a3-selectortramps-arm.s */,
+				4C09CF25214DFFBD00870465 /* a2a3-selectortramps-i386.s */,
+				4C09CF22214DFFBD00870465 /* a2a3-selectortramps-x86_64.s */,
 				4CB2B7B42144BEDD00474F3B /* OCMethodTrace.h */,
 				4CB2B7B12144BEDD00474F3B /* OCMethodTrace.m */,
-				4CB2B7B22144BEDD00474F3B /* wzq_bridge_arm64.s */,
+				4C09CF1E214DFFBD00870465 /* OCSelectorTrampolines.h */,
+				4C09CF21214DFFBD00870465 /* OCSelectorTrampolines.mm */,
+				4C09CF1F214DFFBD00870465 /* selectortramps-util.mac */,
 			);
 			name = OCMethodTrace;
 			path = ../OCMethodTrace;
@@ -232,6 +253,7 @@
 			files = (
 				4CB2B7992144BCA000474F3B /* LaunchScreen.storyboard in Resources */,
 				4CB2B7962144BCA000474F3B /* Assets.xcassets in Resources */,
+				4C09CF28214DFFBD00870465 /* selectortramps-util.mac in Resources */,
 				4CB2B7942144BC9F00474F3B /* Main.storyboard in Resources */,
 				4CB2B7C02144BF6900474F3B /* MDConfig.plist in Resources */,
 			);
@@ -251,16 +273,22 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C09CF29214DFFBD00870465 /* a1a2-selectortramps-arm.s in Sources */,
 				4CB2B7B62144BEDE00474F3B /* OCMethodTrace.m in Sources */,
-				4CB2B7B72144BEDE00474F3B /* wzq_bridge_arm64.s in Sources */,
+				4C09CF26214DFFBD00870465 /* a1a2-selectortramps-arm64.s in Sources */,
 				4CB2B7912144BC9F00474F3B /* ViewController.m in Sources */,
 				4CB2B7C52144C25F00474F3B /* tiger.m in Sources */,
+				4C09CF2A214DFFBD00870465 /* OCSelectorTrampolines.mm in Sources */,
 				4CB2B79C2144BCA000474F3B /* main.m in Sources */,
+				4C09CF2C214DFFBD00870465 /* a1a2-selectortramps-x86_64.s in Sources */,
 				4CB2B78E2144BC9F00474F3B /* AppDelegate.m in Sources */,
+				4C09CF2B214DFFBD00870465 /* a2a3-selectortramps-x86_64.s in Sources */,
 				4CB2B7BD2144BEF200474F3B /* MDMethodTrace.m in Sources */,
 				4CB2B7C62144C25F00474F3B /* Animal.m in Sources */,
 				4CB2B7BE2144BEF200474F3B /* MDConfigManager.m in Sources */,
-				4CB2B7B82144BEDE00474F3B /* imp_bridge.m in Sources */,
+				4C09CF27214DFFBD00870465 /* a2a3-selectortramps-arm.s in Sources */,
+				4C09CF2E214DFFBD00870465 /* a2a3-selectortramps-i386.s in Sources */,
+				4C09CF2D214DFFBD00870465 /* a1a2-selectortramps-i386.s in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -457,7 +485,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = OCMethodTraceDemoTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -466,6 +496,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.OCMethodTraceDemoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OCMethodTraceDemo.app/OCMethodTraceDemo";
 			};
@@ -475,7 +506,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = OCMethodTraceDemoTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -484,6 +517,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.OCMethodTraceDemoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OCMethodTraceDemo.app/OCMethodTraceDemo";
 			};

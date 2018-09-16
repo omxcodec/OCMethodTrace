@@ -98,7 +98,13 @@
 - (CGAffineTransform)method23:(CGAffineTransform)a;
 - (UIEdgeInsets)method24:(UIEdgeInsets)a;
 - (UIOffset)method25:(UIOffset)a;
-- (void (^)())method27:(void (^)())a;
+- (void (^)())method26:(void (^)())a;
+- (ObjStruct1)method27:(ObjStruct1)a;
+- (ObjStruct4)method28:(ObjStruct4)a;
+- (ObjStruct8)method29:(ObjStruct8)a;
+- (ObjStruct16)method30:(ObjStruct16)a;
+- (ObjStruct24)method31:(ObjStruct24)a;
+- (ObjStruct32)method32:(ObjStruct32)a;
 
 @end
 
@@ -288,6 +294,35 @@
     return a;
 }
 
+- (ObjStruct1)method27:(ObjStruct1)a {
+    TestLog();
+    return a;
+}
+- (ObjStruct4)method28:(ObjStruct4)a {
+    TestLog();
+    return a;
+}
+
+- (ObjStruct8)method29:(ObjStruct8)a {
+    TestLog();
+    return a;
+}
+
+- (ObjStruct16)method30:(ObjStruct16)a {
+    TestLog();
+    return a;
+}
+
+- (ObjStruct24)method31:(ObjStruct24)a {
+    TestLog();
+    return a;
+}
+
+- (ObjStruct32)method32:(ObjStruct32)a {
+    TestLog();
+    return a;
+}
+
 @end
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -401,6 +436,30 @@
         
     };
     XCTAssertTrue(aBlock == [o method26:aBlock]);
+    
+    ObjStruct1 st1_1 = { 'a' };
+    ObjStruct1 st1_2 = [o method27:st1_1];
+    XCTAssertTrue(0 == memcmp(&st1_1, &st1_2, sizeof(st1_1)));
+    
+    ObjStruct4 st4_1 = { 1 };
+    ObjStruct4 st4_2 = [o method28:st4_1];
+    XCTAssertTrue(0 == memcmp(&st4_1, &st4_2, sizeof(st4_1)));
+    
+    ObjStruct8 st8_1 = { 1 };
+    ObjStruct8 st8_2 = [o method29:st8_1];
+    XCTAssertTrue(0 == memcmp(&st8_1, &st8_2, sizeof(st8_1)));
+    
+    ObjStruct16 st16_1 = { 1, 2 };
+    ObjStruct16 st16_2 = [o method30:st16_1];
+    XCTAssertTrue(0 == memcmp(&st16_1, &st16_2, sizeof(st16_1)));
+    
+    ObjStruct24 st24_1 = { 1, 2, 3 };
+    ObjStruct24 st24_2 = [o method31:st24_1];
+    XCTAssertTrue(0 == memcmp(&st24_1, &st24_2, sizeof(st24_1)));
+    
+    ObjStruct32 st32_1 = { 1, 2, 3, 4 };
+    ObjStruct32 st32_2 = [o method32:st32_1];
+    XCTAssertTrue(0 == memcmp(&st32_1, &st32_2, sizeof(st32_1)));
 }
 
 @end

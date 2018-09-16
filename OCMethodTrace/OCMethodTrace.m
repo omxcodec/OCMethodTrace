@@ -25,10 +25,7 @@
 #import <objc/message.h>
 #import <execinfo.h>
 #import <dlfcn.h>
-#import "imp_bridge.h"
-
-// SEL获取IMP功能实现是否利用跳板block模式。尚未解决，暂时关闭
-// #define USE_TRAMPOLINE_BLOCK_MODE
+#import "OCSelectorTrampolines.h"
 
 #define OMT_LOG(_level_, _fmt_, ...) do { \
         if ((_level_) <= [OCMethodTrace getInstance].logLevel) { \
@@ -40,8 +37,8 @@
         } \
     } while(0)
 
-#define OMT_LOGE(fmt, ...)  OMT_LOG(OMTLogLevelError, (fmt), ## __VA_ARGS__)
-#define OMT_LOGD(fmt, ...)  OMT_LOG(OMTLogLevelDebug, (fmt), ## __VA_ARGS__)
+#define OMT_LOGE(_fmt_, ...)  OMT_LOG(OMTLogLevelError, (_fmt_), ## __VA_ARGS__)
+#define OMT_LOGD(_fmt_, ...)  OMT_LOG(OMTLogLevelDebug, (_fmt_), ## __VA_ARGS__)
 
 #define ID_NOT_NIL(id) (id != nil ? id : @"nil");
 
@@ -572,26 +569,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
                                               OMTMessageTempPrefix,
                                               NSStringFromClass(cls),
                                               NSStringFromSelector(originSelector)]);
-#ifdef USE_TRAMPOLINE_BLOCK_MODE
-    // 更简单的"imp_implementationWithBlock+内联汇编"模式
-    IMP forwardingIMP = imp_implementationWithBlock(^(id object, ...) {
-        // 汇编之前不要有任何改变寄存器的代码
-        // TODO objc_msgSend返回值怎么透传给OC变量???
-#if defined(__arm64__)
-        __asm__ __volatile__(
-                             "ldr x0, %0\n"
-                             "ldr x1, %1\n"
-                             "bl _objc_msgSend\n"
-                             : /* output */
-                             : "m"(object), "m"(forwardingSEL) /* input */
-                             :
-                             );
-#endif
-    });
-#else
-    // 参考SatanWoo的IMP桥接跳板方法
-    IMP forwardingIMP = imp_selector_bridge(forwardingSEL);
-#endif
+    IMP forwardingIMP = imp_implementationWithSelector(forwardingSEL, [NSString stringWithUTF8String:originTypes]);
     NSAssert(originIMP != forwardingIMP, @"originIMP != forwardingIMP");
     method_setImplementation(originMethod, forwardingIMP);
     

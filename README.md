@@ -4,13 +4,12 @@
 
 ## 功能：
 1. 支持任意OC实例(类)方法的跟踪打印
-2. 避免跟踪基类super调用导致的递归死循环
-3. 避免输出打印时调用-[description]导致的递归死循环
+2. 支持多架构(arm32，arm64，i386，x86_64)
+3. 避免跟踪基类super调用导致的递归死循环
+4. 避免输出打印时调用-[description]导致的递归死循环
 
 ## TODO：
-1. 支持更多架构(当前仅支持arm64)
-2. 完善struct类型参数的自动解析
-3. 跳板实现改用更简单的Objc原生方法"IMP imp_implementationWithBlock(id block) + 内联汇编"的模式
+1. 完善struct类型参数的自动解析
 
 ## 感谢：
 1. https://github.com/qhd/ANYMethodLog
