@@ -741,19 +741,40 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 - (id)omt_getReturnValue
 {
     const char *returnType = self.methodSignature.methodReturnType;
+    id ret = nil;
+    
+    // 跳过const
     if (returnType[0] == _C_CONST) {
         returnType++;
     }
+    
+    // 基本类型
     #define GET_RETURN_VALUE(_type) \
         if (0 == strcmp(returnType, @encode(_type))) { \
             _type val = 0; \
             [self getReturnValue:&val]; \
-            return @(val); \
+            ret = @(val); \
         }
-    if (strcmp(returnType, @encode(id)) == 0 || strcmp(returnType, @encode(Class)) == 0 || strcmp(returnType, @encode(void (^)(void))) == 0) {
-        __autoreleasing id returnObj;
-        [self getReturnValue:&returnObj];
-        return ID_NOT_NIL(returnObj);
+    
+    // 结构体类型
+    #define GET_STRUCT_RETURN_VALUE(_type) \
+        if (is##_type(returnType)) { \
+            _type ret_temp; \
+            [self getReturnValue:&ret_temp]; \
+            ret = NSStringFrom##_type(ret_temp); \
+        }
+    
+    if (omt_isStructType(returnType)) {
+        GET_STRUCT_RETURN_VALUE(CGRect)
+        else GET_STRUCT_RETURN_VALUE(CGPoint)
+        else GET_STRUCT_RETURN_VALUE(CGSize)
+        else GET_STRUCT_RETURN_VALUE(CGVector)
+        else GET_STRUCT_RETURN_VALUE(UIOffset)
+        else GET_STRUCT_RETURN_VALUE(UIEdgeInsets)
+        else GET_STRUCT_RETURN_VALUE(CGAffineTransform)
+    }
+    else if (omt_isUnionType(returnType)) {
+        // do nothing
     }
     else GET_RETURN_VALUE(char)
     else GET_RETURN_VALUE(int)
@@ -768,30 +789,58 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     else GET_RETURN_VALUE(float)
     else GET_RETURN_VALUE(double)
     else GET_RETURN_VALUE(BOOL)
-    else GET_RETURN_VALUE(const char *)
     else if (strcmp(returnType, @encode(void)) == 0) {
-        return @"void";
-    } else if (returnType[0] == _C_PTR) {
+        ret = @"void";
+    }
+    else if (0 == strcmp(returnType, @encode(char *))) {
+        char *ret_temp;
+        [self getReturnValue:&ret_temp];
+        ret = [NSString stringWithUTF8String:ret_temp ? ret_temp : "NULL"];
+    }
+    else if (0 == strcmp(returnType, @encode(id))) {
+        __unsafe_unretained id ret_temp;
+        [self getReturnValue:&ret_temp];
+        ret = ID_NOT_NIL(ret_temp);
+    }
+    else if (0 == strcmp(returnType, @encode(Class))) {
+        Class ret_temp;
+        [self getReturnValue:&ret_temp];
+        ret = NSStringFromClass(ret_temp);
+    }
+    else if (0 == strcmp(returnType, @encode(SEL))) {
+        SEL ret_temp;
+        [self getReturnValue:&ret_temp];
+        ret = NSStringFromSelector(ret_temp);
+    }
+    else if (0 == strcmp(returnType, "@?")) { // block
+        // 则模仿lldb bt堆栈打印形式，直接打印地址
+        void *ret_temp;
+        [self getReturnValue:&ret_temp];
+        ret = [NSString stringWithFormat:@"%p", ret_temp];
+    }
+    else if (returnType[0] == _C_PTR) {
         if (0 == strcmp(returnType, @encode(CFStringRef))) {
             void *return_temp;
             [self getReturnValue:&return_temp];
-            id val = (__bridge NSString *)return_temp;
-            return val;
+            ret = (__bridge NSString *)return_temp;
         }
-        
-        // 模仿lldb bt堆栈打印形式，指针类型直接打印指针地址
-        void *return_temp;
-        [self getReturnValue:&return_temp];
-        return [NSString stringWithFormat:@"%p", return_temp];
-    } else {
+        if (nil == ret) {
+            // 模仿lldb bt堆栈打印形式，直接打印地址
+            void *return_temp;
+            [self getReturnValue:&return_temp];
+            ret = [NSString stringWithFormat:@"%p", return_temp];
+        }
+    }
+    
+    if (nil == ret) {
         NSUInteger valueSize = 0;
         NSGetSizeAndAlignment(returnType, &valueSize, NULL);
         unsigned char valueBytes[valueSize];
         [self getReturnValue:valueBytes];
-        
-        return [NSValue valueWithBytes:valueBytes objCType:returnType];
+        ret = [NSValue valueWithBytes:valueBytes objCType:returnType];
     }
-    return nil;
+    
+    return ret;
 }
 
 - (NSArray *)omt_getArguments
@@ -807,13 +856,24 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
             argumentType++;
         }
         
+        // 基本类型
+        #define GET_ARGUMENT(_type) \
+            if (0 == strcmp(argumentType, @encode(_type))) { \
+                _type arg_temp; \
+                [self getArgument:&arg_temp atIndex:i]; \
+                arg = @(arg_temp); \
+            }
+
+        // 结构体类型
+        #define GET_STRUCT_ARGUMENT(_type) \
+            if (is##_type(argumentType)) { \
+                _type arg_temp; \
+                [self getArgument:&arg_temp atIndex:i]; \
+                arg = NSStringFrom##_type(arg_temp); \
+            }
+
+        
         if (omt_isStructType(argumentType)) {
-            #define GET_STRUCT_ARGUMENT(_type) \
-                if (is##_type(argumentType)) { \
-                    _type arg_temp; \
-                    [self getArgument:&arg_temp atIndex:i]; \
-                    arg = NSStringFrom##_type(arg_temp); \
-                }
             GET_STRUCT_ARGUMENT(CGRect)
             else GET_STRUCT_ARGUMENT(CGPoint)
             else GET_STRUCT_ARGUMENT(CGSize)
@@ -821,19 +881,10 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
             else GET_STRUCT_ARGUMENT(UIOffset)
             else GET_STRUCT_ARGUMENT(UIEdgeInsets)
             else GET_STRUCT_ARGUMENT(CGAffineTransform)
-            if (arg == nil) {
-                arg = @"{unknown}";
-            }
         }
-        if (omt_isUnionType(argumentType)) {
-            arg = @"(unknown)";
+        else if (omt_isUnionType(argumentType)) {
+            // do nothing
         }
-        #define GET_ARGUMENT(_type) \
-            if (0 == strcmp(argumentType, @encode(_type))) { \
-                _type arg_temp; \
-                [self getArgument:&arg_temp atIndex:i]; \
-                arg = @(arg_temp); \
-            }
         else GET_ARGUMENT(char)
         else GET_ARGUMENT(int)
         else GET_ARGUMENT(short)
@@ -847,33 +898,31 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
         else GET_ARGUMENT(float)
         else GET_ARGUMENT(double)
         else GET_ARGUMENT(BOOL)
+        else if (0 == strcmp(argumentType, @encode(char *))) {
+            char *arg_temp;
+            [self getArgument:&arg_temp atIndex:i];
+            arg = [NSString stringWithUTF8String:arg_temp ? arg_temp : "NULL"];
+        }
         else if (0 == strcmp(argumentType, @encode(id))) {
             __unsafe_unretained id arg_temp;
             [self getArgument:&arg_temp atIndex:i];
             arg = ID_NOT_NIL(arg_temp);
+        }
+        else if (0 == strcmp(argumentType, @encode(Class))) {
+            Class arg_temp;
+            [self getArgument:&arg_temp atIndex:i];
+            arg = NSStringFromClass(arg_temp);
         }
         else if (0 == strcmp(argumentType, @encode(SEL))) {
             SEL arg_temp;
             [self getArgument:&arg_temp atIndex:i];
             arg = NSStringFromSelector(arg_temp);
         }
-        else if (0 == strcmp(argumentType, @encode(char *))) {
-            char *arg_temp;
+        else if (0 == strcmp(argumentType, "@?")) { // block
+            // 则模仿lldb bt堆栈打印形式，直接打印地址
+            void *arg_temp;
             [self getArgument:&arg_temp atIndex:i];
-            arg = [NSString stringWithUTF8String:arg_temp ? arg_temp : "NULL"];
-        }
-        else if (0 == strcmp(argumentType, @encode(Class))) {
-            Class arg_temp;
-            [self getArgument:&arg_temp atIndex:i];
-            arg = arg_temp;
-        }
-        else if (0 == strcmp(argumentType, "@?")) {
-            // 则模仿lldb bt堆栈打印形式，block类型直接打印指针地址
-            if (arg == nil) {
-                void *arg_temp;
-                [self getArgument:&arg_temp atIndex:i];
-                arg = [NSString stringWithFormat:@"%p", arg_temp];
-            }
+            arg = [NSString stringWithFormat:@"%p", arg_temp];
         }
         else if (argumentType[0] == _C_PTR) {
             if (0 == strcmp(argumentType, @encode(CFStringRef))) {
@@ -881,17 +930,22 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
                 [self getArgument:&arg_temp atIndex:i];
                 arg = (__bridge NSString *)arg_temp;
             }
-            // 则模仿lldb bt堆栈打印形式，指针类型直接打印指针地址
             if (nil == arg) {
+                // 则模仿lldb bt堆栈打印形式，直接打印地址
                 void *arg_temp;
                 [self getArgument:&arg_temp atIndex:i];
                 arg = [NSString stringWithFormat:@"%p", arg_temp];
             }
         }
         
-        if (!arg) {
-            arg = @"unknown";
+        if (nil == arg) {
+            NSUInteger valueSize = 0;
+            NSGetSizeAndAlignment(argumentType, &valueSize, NULL);
+            unsigned char valueBytes[valueSize];
+            [self getArgument:valueBytes atIndex:i];
+            arg = [NSValue valueWithBytes:valueBytes objCType:argumentType];
         }
+
         [argList addObject:arg];
     }
     return argList;
