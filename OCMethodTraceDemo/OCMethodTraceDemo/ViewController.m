@@ -20,6 +20,24 @@
     // Do any additional setup after loading the view, typically from a nib.
     
     // insert code here...
+    [self testMain];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)testMain {
+    [self test1];
+    [self test2];
+}
+    
+- (void)test1 {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view, typically from a nib.
+    
+    // insert code here...
     NSLog(@"Hello, OCMethodTrace!");
     
     NSLog(@" ");
@@ -30,7 +48,7 @@
     NSLog(@" ");
     
     tiger *obj = [[tiger alloc] init];
-
+    
     NSString *name = nil;
     NSUInteger age = 0;
     
@@ -42,7 +60,7 @@
     [obj setName:@"Tiger-0" age:5];
     NSLog(@"==============================");
     NSLog(@" ");
-
+    
     NSLog(@" ");
     NSLog(@"==============================");
     name = [obj getName];
@@ -134,7 +152,7 @@
     ///////////////////////////////////////////////////////////////
     
     Animal *baseObj = [[Animal alloc] init];
-
+    
     NSLog(@" ");
     NSLog(@"==============================");
     age = [baseObj getAge];
@@ -143,10 +161,17 @@
     NSLog(@" ");
 }
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+- (void)test2 {
+    dispatch_queue_t concurrentQueue = dispatch_queue_create("com.summer.concurrent", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_async(concurrentQueue, ^{
+        int level = 0;
+        do {
+            [Animal setLogLevel:level++];
+            Animal *baseObj = [[Animal alloc] init];
+            [baseObj setName:@"123"];
+            sleep(1);
+        } while(1);
+    });
 }
-
 
 @end

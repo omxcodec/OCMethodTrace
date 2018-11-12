@@ -17,37 +17,6 @@
 
 @interface TestObject : NSObject
 
-//- (void)initSupportedTypeDic
-//{
-//    self.supportedTypeDic = @{[NSString stringWithUTF8String:@encode(char)] : @"(char)",
-//                              [NSString stringWithUTF8String:@encode(int)] : @"(int)",
-//                              [NSString stringWithUTF8String:@encode(short)] : @"(short)",
-//                              [NSString stringWithUTF8String:@encode(long)] : @"(long)",
-//                              [NSString stringWithUTF8String:@encode(long long)] : @"(long long)",
-//                              [NSString stringWithUTF8String:@encode(unsigned char)] : @"(unsigned char))",
-//                              [NSString stringWithUTF8String:@encode(unsigned int)] : @"(unsigned int)",
-//                              [NSString stringWithUTF8String:@encode(unsigned short)] : @"(unsigned short)",
-//                              [NSString stringWithUTF8String:@encode(unsigned long)] : @"(unsigned long)",
-//                              [NSString stringWithUTF8String:@encode(unsigned long long)] : @"(unsigned long long)",
-//                              [NSString stringWithUTF8String:@encode(float)] : @"(float)",
-//                              [NSString stringWithUTF8String:@encode(double)] : @"(double)",
-//                              [NSString stringWithUTF8String:@encode(BOOL)] : @"(BOOL)",
-//                              [NSString stringWithUTF8String:@encode(void)] : @"(void)",
-//                              [NSString stringWithUTF8String:@encode(char *)] : @"(char *)",
-//                              [NSString stringWithUTF8String:@encode(id)] : @"(id)",
-//                              [NSString stringWithUTF8String:@encode(Class)] : @"(Class)",
-//                              [NSString stringWithUTF8String:@encode(SEL)] : @"(SEL)",
-//                              [NSString stringWithUTF8String:@encode(CGRect)] : @"(CGRect)",
-//                              [NSString stringWithUTF8String:@encode(CGPoint)] : @"(CGPoint)",
-//                              [NSString stringWithUTF8String:@encode(CGSize)] : @"(CGSize)",
-//                              [NSString stringWithUTF8String:@encode(CGVector)] : @"(CGVector)",
-//                              [NSString stringWithUTF8String:@encode(CGAffineTransform)] : @"(CGAffineTransform)",
-//                              [NSString stringWithUTF8String:@encode(UIOffset)] : @"(UIOffset)",
-//                              [NSString stringWithUTF8String:@encode(UIEdgeInsets)] : @"(UIEdgeInsets)",
-//                              @"@?":@"(block)", // block类型
-//                              }; // 添加更多类型
-//}
-
 - (BOOL)methodWithA:(char)a
                   b:(int)b
                   c:(short)c
@@ -356,14 +325,14 @@
 }
 
 - (void)testMyTestObject {
-    [[OCMethodTrace getInstance] traceMethodWithClass:[TestObject class] condition:^BOOL(SEL sel) {
+    [[OCMethodTrace sharedInstance] traceMethodWithClass:[TestObject class] condition:^BOOL(SEL sel) {
         return YES;
-    } before:^(id target, Class cls, SEL sel, NSArray *args, NSInteger deep) {
+    } before:^(id target, Class cls, SEL sel, NSArray *args, int deep) {
         NSLog(@" ");
         NSLog(@"==============================");
         NSLog(@"target :%@ sel: %@ args: %@", target, NSStringFromSelector(sel), args);
-    } after:^(id target, Class cls, SEL sel, NSArray *args, NSTimeInterval interval, NSInteger deep, id retValue) {
-        NSLog(@"target: %@ sel: %@ retValue: %@", target, NSStringFromSelector(sel), retValue);
+    } after:^(id target, Class cls, SEL sel, id ret, int deep, NSTimeInterval interval) {
+        NSLog(@"target: %@ sel: %@ ret: %@", target, NSStringFromSelector(sel), ret);
         NSLog(@"==============================");
         NSLog(@" ");
     }];

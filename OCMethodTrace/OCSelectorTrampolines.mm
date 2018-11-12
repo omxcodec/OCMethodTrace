@@ -312,19 +312,21 @@ _pageAndIndexContainingIMP(IMP anImp, uintptr_t *outIndex,
 
 
 static ArgumentMode 
-_argumentModeForSignature(NSString *signature)
+_argumentModeForSignature(const char *signature)
 {
     ArgumentMode aMode = ReturnValueInRegisterArgumentMode;
 
 #if SUPPORT_STRET
-    if ([signature UTF8String][0] == '{') {
-        // In some cases that returns struct, we should use the '_stret' API:
-        // http://sealiesoftware.com/blog/archive/2008/10/30/objc_explain_objc_msgSend_stret.html
-        // NSMethodSignature knows the detail but has no API to return, we can only get the info from debugDescription.
-        NSMethodSignature *methodSignature = [NSMethodSignature signatureWithObjCTypes:[signature UTF8String]];
-        if ([methodSignature.debugDescription rangeOfString:@"is special struct return? YES"].location != NSNotFound) {
-            aMode = ReturnValueOnStackArgumentMode;
-        }
+    if (signature && signature[0] == '{') {
+        @try {
+            // In some cases that returns struct, we should use the '_stret' API:
+            // http://sealiesoftware.com/blog/archive/2008/10/30/objc_explain_objc_msgSend_stret.html
+            // NSMethodSignature knows the detail but has no API to return, we can only get the info from debugDescription.
+            NSMethodSignature *methodSignature = [NSMethodSignature signatureWithObjCTypes:signature];
+            if ([methodSignature.debugDescription rangeOfString:@"is special struct return? YES"].location != NSNotFound) {
+                aMode = ReturnValueOnStackArgumentMode;
+            }
+        } @catch (__unused NSException *e) {}
     }
 #endif
     
@@ -333,7 +335,7 @@ _argumentModeForSignature(NSString *signature)
 
 
 #pragma mark Public API
-IMP imp_implementationWithSelector(SEL aSel, NSString *signature)
+IMP imp_implementationWithSelector(SEL aSel, const char *signature)
 {
     IMP returnIMP;
     

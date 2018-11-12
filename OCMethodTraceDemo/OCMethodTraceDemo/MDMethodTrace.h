@@ -15,11 +15,13 @@
 
 @interface MDMethodTrace : NSObject
 
-+ (void)addClassTrace:(NSString*) className;
++ (instancetype)sharedInstance;
 
-+ (void)addClassTrace:(NSString *)className methodName:(NSString*) methodName;
+- (void)addClassTrace:(NSString *) className;
 
-+ (void)addClassTrace:(NSString *)className methodList:(NSArray*) methodList;
+- (void)addClassTrace:(NSString *)className methodName:(NSString *)methodName;
+
+- (void)addClassTrace:(NSString *)className methodList:(NSArray *)methodList;
 
 @end
 

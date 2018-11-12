@@ -21,6 +21,6 @@
 
 #import <Foundation/Foundation.h>
 
-FOUNDATION_EXTERN IMP imp_implementationWithSelector(SEL aSel, NSString *signature);
+FOUNDATION_EXTERN IMP imp_implementationWithSelector(SEL aSel, const char *signature);
 FOUNDATION_EXTERN SEL imp_getSelector(IMP anImp);
 FOUNDATION_EXTERN BOOL imp_removeSelector(IMP anImp);

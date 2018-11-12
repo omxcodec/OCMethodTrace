@@ -22,7 +22,7 @@
 #ifdef __i386__
 
 #include <mach/mach.h>
-#include "selectortramps-util.mac"
+#include "selectortramps.mac"
 
 .text
     .private_extern __a2a3_selectorTrampHead

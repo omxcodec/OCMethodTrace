@@ -28,9 +28,9 @@
 #import "OCSelectorTrampolines.h"
 
 #define OMT_LOG(_level_, _fmt_, ...) do { \
-        if ((_level_) <= [OCMethodTrace getInstance].logLevel) { \
-            if ([OCMethodTrace getInstance].logDelegate && [[OCMethodTrace getInstance].logDelegate respondsToSelector:@selector(log:format:)]) { \
-                [[OCMethodTrace getInstance].logDelegate log:OMTLogLevelDebug format:(_fmt_), ## __VA_ARGS__]; \
+        if ((_level_) <= [OCMethodTrace sharedInstance].logLevel) { \
+            if ([OCMethodTrace sharedInstance].delegate && [[OCMethodTrace sharedInstance].delegate respondsToSelector:@selector(log:format:)]) { \
+                [[OCMethodTrace sharedInstance].delegate log:OMTLogLevelDebug format:(_fmt_), ## __VA_ARGS__]; \
             } else { \
                 NSLog((_fmt_), ## __VA_ARGS__); \
             } \
@@ -40,30 +40,32 @@
 #define OMT_LOGE(_fmt_, ...)  OMT_LOG(OMTLogLevelError, (_fmt_), ## __VA_ARGS__)
 #define OMT_LOGD(_fmt_, ...)  OMT_LOG(OMTLogLevelDebug, (_fmt_), ## __VA_ARGS__)
 
-#define ID_NOT_NIL(id) (id != nil ? id : @"nil");
-
-static NSString *const OMTMessageTempPrefix  = @"__OMTMessageTemp_";
-static NSString *const OMTMessageFinalPrefix = @"__OMTMessageFinal_";
-static NSString *const OMTTraceRunBeforeSel  = @"runBefore:";
-static NSString *const OMTTraceRunAfterSel   = @"runAfter:";
+static NSString *const OMTMessageTempPrefix                 = @"__OMTMessageTemp_";
+static NSString *const OMTMessageFinalPrefix                = @"__OMTMessageFinal_";
+static NSString *const OMTBlockRunBeforeSelector            = @"runBefore:";
+static NSString *const OMTBlockRunAfterSelector             = @"runAfter:";
+static NSString *const OMTInvocationGetReturnValueSelector  = @"omt_getReturnValue";
+static NSString *const OMTInvocationGetArgumentsSelector    = @"omt_getArguments";
 
 // 错误码，对内使用，便于调试
 typedef NS_ENUM(NSUInteger, OMTErrorCode) {
-    OMTErrorNoError,                        // 没有错误
-    OMTErrorSelectorPassThrough,            // 透传不处理
-    OMTErrorSelectorAlreadyHooked,          // 已经hook过
-    OMTErrorSelectorInUserBlacklist,        // 在用户的黑名单里
-    OMTErrorSelectorInSelfBlacklist,        // 在内部的黑名单里
-    OMTErrorSelectorUnsuppotedType,         // 无法支持sel的编码类型
-    OMTErrorDoesNotRespondToMethod,         // 无此method
-    OMTErrorDoesNotRespondToSelector,       // 无此sel
-    OMTErrorDoesNotRespondToIMP,            // 无此IMP
-    OMTErrorSwizzleMethodFailed,            // 替换方法失败
+    OMTErrorNoError,                            // NERR 没有错误
+    OMTErrorSelectorPassThrough,                // SPTH 透传不处理
+    OMTErrorSelectorAlreadyHooked,              // SAHK 已经hook过
+    OMTErrorSelectorInUserBlacklist,            // SIUB 在用户的黑名单里
+    OMTErrorClassInSelfBlacklist,               // CISB 在内部的类黑名单里
+    OMTErrorSelectorInSelfBlacklist,            // SISB 在内部的sel黑名单里
+    OMTErrorSelectorUnsuppotedMethodSignature,  // SUMS 无法支持的方法签名(导致crash的异常签名)
+    OMTErrorSelectorUnsuppotedEncodeType,       // SUEY 无法支持的编码类型(局部无法识别的签名)
+    OMTErrorDoesNotRespondToMethod,             // NMTD 无此method
+    OMTErrorDoesNotRespondToSelector,           // NSEL 无此sel
+    OMTErrorDoesNotRespondToIMP,                // NIMP 无此IMP
+    OMTErrorSwizzleMethodFailed,                // SMDF 替换方法失败
 };
 
-#define LOG_LEVEL_4_ERROR_CODE(_errorCode_) (((_errorCode_) >= OMTErrorSelectorUnsuppotedType) ? OMTLogLevelError : OMTLogLevelDebug)
+#define LOG_LEVEL_4_ERROR_CODE(_errorCode_) (((_errorCode_) >= OMTErrorSelectorUnsuppotedMethodSignature) ? OMTLogLevelError : OMTLogLevelDebug)
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 #pragma mark - C Helper Define
 
 // 替换实例方法
@@ -71,6 +73,8 @@ static void swizzle_instance_method(Class cls, SEL originSel, SEL newSel);
 // 替换类方法
 static void swizzle_class_method(Class cls, SEL originSel, SEL newSel);
 
+// 是否支持某类型限定符
+static BOOL omt_isTypeQualifier(const char argumentType);
 // 是否是struct类型
 static BOOL omt_isStructType(const char *argumentType);
 // 获取struct类型名
@@ -87,7 +91,7 @@ static BOOL isUIOffset         (const char *type);
 static BOOL isUIEdgeInsets     (const char *type);
 static BOOL isCGAffineTransform(const char *type);
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 #pragma mark - Class Define
 
 @interface OMTBlock : NSObject
@@ -97,8 +101,9 @@ static BOOL isCGAffineTransform(const char *type);
 @property (nonatomic, copy) OMTBeforeBlock before;
 @property (nonatomic, copy) OMTAfterBlock after;
 
-- (void)runBefore:(id)target class:(Class)cls sel:(SEL)sel args:(NSArray *)args deep:(NSInteger)deep;
-- (void)runAfter:(id)target class:(Class)cls sel:(SEL)sel args:(NSArray *)args interval:(NSTimeInterval)interval deep:(NSInteger)deep retValue:(id)retValue;
+- (BOOL)runCondition:(SEL)sel;
+- (void)runBefore:(id)target class:(Class)cls sel:(SEL)sel args:(NSArray *)args deep:(int)deep;
+- (void)runAfter:(id)target class:(Class)cls sel:(SEL)sel ret:(id)ret deep:(int)deep interval:(NSTimeInterval)interval;
 
 @end
 
@@ -112,10 +117,20 @@ static BOOL isCGAffineTransform(const char *type);
 @end
 
 @interface NSObject (OCMethodTrace)
+
+// 类转发方法
++ (id)omt_forwardingTargetForSelector:(SEL)aSelector;
+// 实例转发方法
+- (id)omt_forwardingTargetForSelector:(SEL)aSelector;
+
 @end
 
 @interface NSInvocation (OCMethodTrace)
 
+// 获取原始的类名
+- (Class)omt_originClass;
+// 获取原始的方法名
+- (SEL)omt_originSelector;
 // 获取方法返回值
 - (id)omt_getReturnValue;
 // 获取方法参数
@@ -125,41 +140,45 @@ static BOOL isCGAffineTransform(const char *type);
 
 @interface OCMethodTrace()
 
-@property (nonatomic, strong) NSArray *defaultBlackList;
-@property (nonatomic, strong) NSDictionary *supportedTypeDic;
+@property (nonatomic, strong) NSArray *defaultClassBlackList;
+@property (nonatomic, strong) NSArray *defaultMethodBlackList;
+@property (nonatomic, strong) NSDictionary *supportedTypeDict;
 @property (nonatomic, strong) NSMutableDictionary *blockCache;
-@property (atomic, assign) NSInteger deep;
+@property (atomic, assign) int deep;
 
 // 初始化内部默认黑名单
-- (void)initDefaultBlackList;
+- (void)initDefaultClassBlackList;
+- (void)initDefaultMethodBlackList;
 // 初始化所支持类型编码的字典
-- (void)initSupportedTypeDic;
+- (void)initSupportedTypeDict;
 // 根据错误码返回错误描述
 + (NSString *)errorString:(OMTErrorCode)errorCode;
-// 判断是否是内部类(过滤使用)
-+ (BOOL)isInternalClass:(Class)cls;
 // 判断函数数组里任意函数是否存在递归调用
-+ (BOOL)recursiveCallExistsAtFuncArray:(NSArray *)funcArray;
++ (BOOL)recursiveInvocationAtSelectorArray:(NSArray *)selectorArray;
+// 获取target的description
+- (NSString *)descriptionWithTarget:(id)target selector:(SEL)selector returnState:(BOOL)returnState;
+// 判断类是否在内部默认黑名单中
+- (BOOL)isClassInBlackList:(NSString *)className;
 // 判断方法是否在内部默认黑名单中
 - (BOOL)isSelectorInBlackList:(NSString *)methodName;
 // 判断类型编码是否可以处理
 - (BOOL)isSupportedType:(NSString *)typeEncode;
 // block相关
 - (void)setBlock:(OMTBlock *)block forKey:(NSString *)key;
-- (OMTBlock *)blockforKey:(NSString *)aKey;
+- (OMTBlock *)blockforKey:(NSString *)key;
 - (OMTBlock *)blockWithTarget:(id)target;
 // 根据条件跟踪目标类的方法
 - (void)traceMethodWithClass:(Class)cls condition:(OMTConditionBlock)condition;
 // 判断方法是否支持跟踪
-- (OMTErrorCode)isTraceSupportedWithClass:(Class)cls method:(Method)method returnType:(const char *)returnType;
+- (OMTErrorCode)isTraceSupportedWithClass:(Class)cls method:(Method)method;
 // 替换方法
-- (OMTErrorCode)swizzleMethodWithClass:(Class)cls originSelector:(SEL)originSelector returnType:(const char *)returnType;
+- (OMTErrorCode)swizzleMethodWithClass:(Class)cls selector:(SEL)selector;
 // 转发实现
 - (void)omt_forwardInvocation:(NSInvocation *)invocation;
 
 @end
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 #pragma mark - C Helper
 
@@ -187,6 +206,21 @@ static void swizzle_class_method(Class cls, SEL originSel, SEL newSel)
     } else {
         method_exchangeImplementations(originMethod, newMethod);
     }
+}
+
+static BOOL omt_isTypeQualifier(const char argumentType)
+{
+    // Table 6-2 Objective-C method encodings
+    static const char supportedTypeQualifierList[] = { 'r', 'n', 'N', 'o', 'O', 'R', 'V' };
+    static const size_t kNumSupportedTypeQualifier = sizeof(supportedTypeQualifierList) / sizeof(supportedTypeQualifierList[0]);
+    
+    size_t i;
+    for (i = 0; i < kNumSupportedTypeQualifier; i++) {
+        if (argumentType == supportedTypeQualifierList[i]) {
+            return YES;
+        }
+    }
+    return NO;
 }
 
 static BOOL omt_isStructType(const char *argumentType)
@@ -233,16 +267,16 @@ static BOOL isUIOffset         (const char *type) {return [omt_structName(type) 
 static BOOL isUIEdgeInsets     (const char *type) {return [omt_structName(type) isEqualToString:@"UIEdgeInsets"];}
 static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) isEqualToString:@"CGAffineTransform"];}
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 #pragma mark - OCMethodTrace
 
 @implementation OCMethodTrace
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 #pragma mark - Public OCMethodTrace API
 
-+ (OCMethodTrace *)getInstance
++ (OCMethodTrace *)sharedInstance
 {
     static OCMethodTrace *instance = nil;
     static dispatch_once_t pred;
@@ -261,8 +295,11 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     return;
 #endif
     
-    // 内部类不跟踪
-    if ([self.class isInternalClass:cls]) {
+    // 黑名单的类不跟踪
+    if ([self isClassInBlackList:NSStringFromClass(cls)]) {
+        OMT_LOG(OMTLogLevelDebug, @"[%@] trace class: %@",
+                [self.class errorString:OMTErrorClassInSelfBlacklist],
+                NSStringFromClass(cls));
         return;
     }
     
@@ -286,7 +323,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 #pragma mark - Private OCMethodTrace API
 
 - (instancetype)init
@@ -294,9 +331,11 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     self = [super init];
     if (self) {
         // 参考ANYMethodLog的处理
-        [self initDefaultBlackList];
-        [self initSupportedTypeDic];
+        [self initDefaultClassBlackList];
+        [self initDefaultMethodBlackList];
+        [self initSupportedTypeDict];
 
+        self.disableTrace = NO;
         self.logLevel = OMTLogLevelDebug;
         self.blockCache = [NSMutableDictionary dictionary];
         self.deep = 0;
@@ -308,40 +347,81 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 {
 }
 
-- (void)initDefaultBlackList
+- (void)initDefaultClassBlackList
 {
-    self.defaultBlackList = @[/*UIViewController的:*/@".cxx_destruct",@"dealloc", @"_isDeallocating", @"release", @"autorelease", @"retain", @"Retain", @"_tryRetain", @"copy", /*UIView的:*/ @"nsis_descriptionOfVariable:", /*NSObject的:*/@"respondsToSelector:", @"class", @"methodSignatureForSelector:", @"allowsWeakReference", @"retainWeakReference", @"init", @"forwardInvocation:", @"description"];
+    self.defaultClassBlackList = @[@"OCMethodTrace",
+                                   @"OMTBlock",
+                                   @"OMTMessageStub",
+                                   @"NSMethodSignature",
+                                   @"NSInvocation",
+                                   ];
 }
 
-- (void)initSupportedTypeDic
+- (void)initDefaultMethodBlackList
 {
-    self.supportedTypeDic = @{[NSString stringWithUTF8String:@encode(char)] : @"(char)",
-                              [NSString stringWithUTF8String:@encode(int)] : @"(int)",
-                              [NSString stringWithUTF8String:@encode(short)] : @"(short)",
-                              [NSString stringWithUTF8String:@encode(long)] : @"(long)",
-                              [NSString stringWithUTF8String:@encode(long long)] : @"(long long)",
-                              [NSString stringWithUTF8String:@encode(unsigned char)] : @"(unsigned char))",
-                              [NSString stringWithUTF8String:@encode(unsigned int)] : @"(unsigned int)",
-                              [NSString stringWithUTF8String:@encode(unsigned short)] : @"(unsigned short)",
-                              [NSString stringWithUTF8String:@encode(unsigned long)] : @"(unsigned long)",
-                              [NSString stringWithUTF8String:@encode(unsigned long long)] : @"(unsigned long long)",
-                              [NSString stringWithUTF8String:@encode(float)] : @"(float)",
-                              [NSString stringWithUTF8String:@encode(double)] : @"(double)",
-                              [NSString stringWithUTF8String:@encode(BOOL)] : @"(BOOL)",
-                              [NSString stringWithUTF8String:@encode(void)] : @"(void)",
-                              [NSString stringWithUTF8String:@encode(char *)] : @"(char *)",
-                              [NSString stringWithUTF8String:@encode(id)] : @"(id)",
-                              [NSString stringWithUTF8String:@encode(Class)] : @"(Class)",
-                              [NSString stringWithUTF8String:@encode(SEL)] : @"(SEL)",
-                              [NSString stringWithUTF8String:@encode(CGRect)] : @"(CGRect)",
-                              [NSString stringWithUTF8String:@encode(CGPoint)] : @"(CGPoint)",
-                              [NSString stringWithUTF8String:@encode(CGSize)] : @"(CGSize)",
-                              [NSString stringWithUTF8String:@encode(CGVector)] : @"(CGVector)",
-                              [NSString stringWithUTF8String:@encode(CGAffineTransform)] : @"(CGAffineTransform)",
-                              [NSString stringWithUTF8String:@encode(UIOffset)] : @"(UIOffset)",
-                              [NSString stringWithUTF8String:@encode(UIEdgeInsets)] : @"(UIEdgeInsets)",
-                              @"@?":@"(block)", // block类型
-                              }; // 添加更多类型
+    self.defaultMethodBlackList = @[@"init",
+                                    @"alloc",
+                                    @"allocWithZone:",
+                                    @"new",
+                                    @".cxx_destruct", /* UIViewController */
+                                    @"_isDeallocating",
+                                    @"release",
+                                    @"dealloc",
+                                    @"autorelease",
+                                    @"recycle",
+                                    @"retain",
+                                    @"Retain",
+                                    @"_tryRetain",
+                                    @"copy",
+                                    @"copyWithZone:",
+                                    @"mutableCopyWithZone:",
+                                    @"nsis_descriptionOfVariable:",
+                                    @"respondsToSelector:",
+                                    @"class",
+                                    @"methodSignatureForSelector:",
+                                    @"allowsWeakReference",
+                                    @"retainWeakReference",
+                                    @"forwardInvocation:",
+                                    @"description",
+                                    @"sharedInstance",
+                                    @"SharedInstance",
+                                    @"getInstance",
+                                    @"GetInstance",
+                                    ];
+}
+
+- (void)initSupportedTypeDict
+{
+    // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100-SW1
+
+    // Table 6-1  Objective-C type encodings
+    self.supportedTypeDict = @{[NSString stringWithUTF8String:@encode(char)] : @"(char)",
+                               [NSString stringWithUTF8String:@encode(int)] : @"(int)",
+                               [NSString stringWithUTF8String:@encode(short)] : @"(short)",
+                               [NSString stringWithUTF8String:@encode(long)] : @"(long)",
+                               [NSString stringWithUTF8String:@encode(long long)] : @"(long long)",
+                               [NSString stringWithUTF8String:@encode(unsigned char)] : @"(unsigned char))",
+                               [NSString stringWithUTF8String:@encode(unsigned int)] : @"(unsigned int)",
+                               [NSString stringWithUTF8String:@encode(unsigned short)] : @"(unsigned short)",
+                               [NSString stringWithUTF8String:@encode(unsigned long)] : @"(unsigned long)",
+                               [NSString stringWithUTF8String:@encode(unsigned long long)] : @"(unsigned long long)",
+                               [NSString stringWithUTF8String:@encode(float)] : @"(float)",
+                               [NSString stringWithUTF8String:@encode(double)] : @"(double)",
+                               [NSString stringWithUTF8String:@encode(BOOL)] : @"(BOOL)",
+                               [NSString stringWithUTF8String:@encode(void)] : @"(void)",
+                               [NSString stringWithUTF8String:@encode(char *)] : @"(char *)",
+                               [NSString stringWithUTF8String:@encode(id)] : @"(id)",
+                               [NSString stringWithUTF8String:@encode(Class)] : @"(Class)",
+                               [NSString stringWithUTF8String:@encode(SEL)] : @"(SEL)",
+                               [NSString stringWithUTF8String:@encode(CGRect)] : @"(CGRect)",
+                               [NSString stringWithUTF8String:@encode(CGPoint)] : @"(CGPoint)",
+                               [NSString stringWithUTF8String:@encode(CGSize)] : @"(CGSize)",
+                               [NSString stringWithUTF8String:@encode(CGVector)] : @"(CGVector)",
+                               [NSString stringWithUTF8String:@encode(CGAffineTransform)] : @"(CGAffineTransform)",
+                               [NSString stringWithUTF8String:@encode(UIOffset)] : @"(UIOffset)",
+                               [NSString stringWithUTF8String:@encode(UIEdgeInsets)] : @"(UIEdgeInsets)",
+                               @"@?":@"(block)", // block类型
+                               }; // 添加更多类型
 }
 
 + (NSString *)errorString:(OMTErrorCode)errorCode
@@ -351,16 +431,18 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
         const char *errorString;
     };
     static const struct CodeToString kCodeToString[] = {
-        { OMTErrorNoError,                  "NERR" },
-        { OMTErrorSelectorPassThrough,      "SPTH" },
-        { OMTErrorSelectorAlreadyHooked,    "SAHK" },
-        { OMTErrorSelectorInUserBlacklist,  "SIUB" },
-        { OMTErrorSelectorInSelfBlacklist,  "SISB" },
-        { OMTErrorSelectorUnsuppotedType,   "SUST" },
-        { OMTErrorDoesNotRespondToMethod,   "NMTD" },
-        { OMTErrorDoesNotRespondToSelector, "NSEL" },
-        { OMTErrorDoesNotRespondToIMP,      "NIMP" },
-        { OMTErrorSwizzleMethodFailed,      "SMDF" },
+        { OMTErrorNoError,                          "NERR" },
+        { OMTErrorSelectorPassThrough,              "SPTH" },
+        { OMTErrorSelectorAlreadyHooked,            "SAHK" },
+        { OMTErrorSelectorInUserBlacklist,          "SIUB" },
+        { OMTErrorClassInSelfBlacklist,             "CISB" },
+        { OMTErrorSelectorInSelfBlacklist,          "SISB" },
+        { OMTErrorSelectorUnsuppotedMethodSignature,"SUMS" },
+        { OMTErrorSelectorUnsuppotedEncodeType,     "SUEY" },
+        { OMTErrorDoesNotRespondToMethod,           "NMTD" },
+        { OMTErrorDoesNotRespondToSelector,         "NSEL" },
+        { OMTErrorDoesNotRespondToIMP,              "NIMP" },
+        { OMTErrorSwizzleMethodFailed,              "SMDF" },
     };
     
     static const size_t kNumCodeToString = sizeof(kCodeToString) / sizeof(kCodeToString[0]);
@@ -376,18 +458,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     return [NSString stringWithUTF8String:kCodeToString[i].errorString];
 }
 
-+ (BOOL)isInternalClass:(Class)cls
-{
-    NSString *className = NSStringFromClass(cls);
-    if ([className isEqualToString:@"OMTBlock"] ||
-        [className isEqualToString:@"OMTMessageStub"] ||
-        [className isEqualToString:@"OCMethodTrace"]) {
-        return YES;
-    }
-    return NO;
-}
-
-+ (BOOL)recursiveCallExistsAtFuncArray:(NSArray *)funcArray
++ (BOOL)recursiveInvocationAtSelectorArray:(NSArray *)selectorArray
 {
     void *callstack[128];
     int frames = backtrace(callstack, 128);
@@ -395,11 +466,11 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     
     BOOL exists = NO;
     // 跳过自身方法，所以从1开始
-    for (int i = 1; i < frames && strs; i++) {
+    for (int i = 1; i < frames && strs && !exists; i++) {
         NSString *frame = [NSString stringWithUTF8String:strs[i]];
         // OMT_LOGD(@"frame[%d]: %@", i, frame);
-        for (NSString *func in funcArray) {
-            if ([frame containsString:func]) {
+        for (NSString *selector in selectorArray) {
+            if ([frame containsString:selector]) {
                 exists = YES;
                 break;
             }
@@ -411,14 +482,28 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     return exists;
 }
 
+- (NSString *)descriptionWithTarget:(id)target selector:(SEL)selector returnState:(BOOL)returnState
+{
+    if (nil != self.delegate && [self.delegate respondsToSelector:@selector(descriptionWithTarget:selector:returnState:)]) {
+        return [self.delegate descriptionWithTarget:target selector:selector returnState:returnState];
+    } else {
+        return [target description];
+    }
+}
+
+- (BOOL)isClassInBlackList:(NSString *)className
+{
+    return [self.defaultClassBlackList containsObject:className];
+}
+
 - (BOOL)isSelectorInBlackList:(NSString *)methodName
 {
-    return [self.defaultBlackList containsObject:methodName];
+    return [self.defaultMethodBlackList containsObject:methodName];
 }
 
 - (BOOL)isSupportedType:(NSString *)typeEncode
 {
-    return [self.supportedTypeDic.allKeys containsObject:typeEncode];
+    return [self.supportedTypeDict.allKeys containsObject:typeEncode];
 }
 
 - (void)setBlock:(OMTBlock *)block forKey:(NSString *)key
@@ -456,12 +541,11 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 {
     unsigned int outCount;
     Method *methods = class_copyMethodList(cls, &outCount);
-    for (unsigned int i = 0; i < outCount; i ++) {
+    for (unsigned int i = 0; i < outCount; i++) {
         Method method = *(methods + i);
         SEL selector = method_getName(method);
-        char *returnType = method_copyReturnType(method);
         
-        OMTErrorCode errorCode = [self isTraceSupportedWithClass:cls method:method returnType:returnType];
+        OMTErrorCode errorCode = [self isTraceSupportedWithClass:cls method:method];
         if (errorCode == OMTErrorNoError && condition) {
             // 用户只有两种选择：跟踪，不跟踪
             if (!condition(selector)) {
@@ -470,58 +554,76 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
         }
         
         if (errorCode == OMTErrorNoError) {
-            errorCode = [self swizzleMethodWithClass:cls originSelector:selector returnType:returnType];
+            errorCode = [self swizzleMethodWithClass:cls selector:selector];
         }
         
-        OMT_LOG(LOG_LEVEL_4_ERROR_CODE(errorCode), @"[%@] hook class:%@ method:%@ types:%s",
+        OMT_LOG(LOG_LEVEL_4_ERROR_CODE(errorCode), @"[%@] trace class: %@ method: %@ types: %s",
                  [self.class errorString:errorCode],
                  NSStringFromClass(cls),
                  NSStringFromSelector(selector),
                  method_getDescription(method)->types);
-        
-        free(returnType);
     }
     free(methods);
 }
 
-- (OMTErrorCode)isTraceSupportedWithClass:(Class)cls method:(Method)method returnType:(const char *)returnType
+- (OMTErrorCode)isTraceSupportedWithClass:(Class)cls method:(Method)method
 {
-    // 1 内部方法不处理
+    char returnTypeCString[1024];
+    memset(returnTypeCString, 0, sizeof(returnTypeCString));
+    method_getReturnType(method, returnTypeCString, sizeof(returnTypeCString));
+    const char *returnType = returnTypeCString;
+    
+    
     NSString *selectorName = NSStringFromSelector(method_getName(method));
-    if ([selectorName rangeOfString:@"omt_"].location != NSNotFound) {
+    if ([selectorName hasPrefix:@"omt_"]) {
+        // 1 内部方法不处理
         return OMTErrorSelectorPassThrough;
+    } else if ([selectorName hasPrefix:OMTMessageFinalPrefix]) {
+        // 2 处理过的方法不处理
+        return OMTErrorSelectorAlreadyHooked;
     }
     
-    // 2 内部黑名单中的方法不处理
+    // 3 内部黑名单中的方法不处理
     if ([self isSelectorInBlackList:selectorName]) {
         return OMTErrorSelectorInSelfBlacklist;
     }
     
-    // 3 处理返回值类型
-    // 跳过const
-    if (returnType[0] == _C_CONST) {
+    // 4 签名异常的方法不处理。模拟器下有一些奇葩的方法(系统方法居多)签名异常，会导致[NSMethodSignature signatureWithObjCTypes:] crash，所以需捕捉异常
+    BOOL hasSignatureException = NO;
+    @try {
+        __unused NSMethodSignature *methodSignature = [NSMethodSignature signatureWithObjCTypes:method_getTypeEncoding(method)];
+    } @catch (__unused NSException *e) {
+        hasSignatureException = YES;
+    }
+    if (hasSignatureException) {
+        return OMTErrorSelectorUnsuppotedMethodSignature;
+    }
+    
+    // 5 处理返回值类型
+    // 跳过类型限定符
+    if (omt_isTypeQualifier(returnType[0])) {
         returnType++;
     }
+    
     // 支持指针类型
     if (returnType[0] != _C_PTR) {
-        // struct和union有可能无法解析，但是也通过，解释不出的用?输出，便于打印函数调用链
+        // struct和union有可能无法解析，但是也通过，解释不出的用NSValue输出，便于打印函数调用链
         if (!(omt_isStructType(returnType) || omt_isUnionType(returnType))) {
-            NSString *returnTypeString = [NSString stringWithUTF8String:returnType];
-            if (![self isSupportedType:returnTypeString]) {
-                return OMTErrorSelectorUnsuppotedType;
+            if (![self isSupportedType:[NSString stringWithUTF8String:returnType]]) {
+                return OMTErrorSelectorUnsuppotedEncodeType;
             }
         }
     }
     
-    // 4 处理参数类型，需注意：发送消息时，第0个参数是self, 第1个参数是sel，第2个参数才是真正意义上的第一个方法参数，所以从2开始算
-    for (int k = 2 ; k < method_getNumberOfArguments(method); k ++) {
-        char argument[1024];
-        memset(argument, 0, sizeof(argument));
-        method_getArgumentType(method, k, argument, sizeof(argument));
-        const char *argumentType = argument;
+    // 6 处理参数类型。需注意：发送消息时，第0个参数是self, 第1个参数是sel，第2个参数才是真正意义上的第一个方法参数，所以从2开始算
+    for (int k = 2 ; k < method_getNumberOfArguments(method); k++) {
+        char argumentTypeCString[1024];
+        memset(argumentTypeCString, 0, sizeof(argumentTypeCString));
+        method_getArgumentType(method, k, argumentTypeCString, sizeof(argumentTypeCString));
+        const char *argumentType = argumentTypeCString;
 
-        // 跳过const
-        if (argumentType[0] == _C_CONST) {
+        // 跳过类型限定符
+        if (omt_isTypeQualifier(argumentType[0])) {
             argumentType++;
         }
         // 支持指针类型
@@ -529,31 +631,30 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
             continue;
         }
 
-        NSString *argumentString = [NSString stringWithUTF8String:argumentType];
-        // struct和union有可能无法解析，但是也通过，解释不出的用?输出，便于打印函数调用链
+        // struct和union有可能无法解析，但是也通过，解释不出的用NSValue输出，便于打印函数调用链
         if (!(omt_isStructType(argumentType) || omt_isUnionType(argumentType))) {
-            if (![self isSupportedType:argumentString]) {
-                return OMTErrorSelectorUnsuppotedType;
+            if (![self isSupportedType:[NSString stringWithUTF8String:argumentType]]) {
+                return OMTErrorSelectorUnsuppotedEncodeType;
             }
         }
     }
-
+    
     return OMTErrorNoError;
 }
 
-- (OMTErrorCode)swizzleMethodWithClass:(Class)cls originSelector:(SEL)originSelector returnType:(const char *)returnType
+- (OMTErrorCode)swizzleMethodWithClass:(Class)cls selector:(SEL)selector
 {
-    // 1 检查该sel是否已经hook过
+    // 1 检查该selector是否已经hook过
     SEL newSelector = NSSelectorFromString([NSString stringWithFormat:@"%@%@->%@",
                                             OMTMessageFinalPrefix,
                                             NSStringFromClass(cls),
-                                            NSStringFromSelector(originSelector)]);
+                                            NSStringFromSelector(selector)]);
     if (class_respondsToSelector(cls, newSelector)) {
         return OMTErrorSelectorAlreadyHooked;
     }
     
     // 2 原方法相关校验
-    Method originMethod = class_getInstanceMethod(cls, originSelector);
+    Method originMethod = class_getInstanceMethod(cls, selector);
     if (!originMethod) {
         return OMTErrorDoesNotRespondToMethod;
     }
@@ -568,8 +669,8 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     SEL forwardingSEL = NSSelectorFromString([NSString stringWithFormat:@"%@%@->%@",
                                               OMTMessageTempPrefix,
                                               NSStringFromClass(cls),
-                                              NSStringFromSelector(originSelector)]);
-    IMP forwardingIMP = imp_implementationWithSelector(forwardingSEL, [NSString stringWithUTF8String:originTypes]);
+                                              NSStringFromSelector(selector)]);
+    IMP forwardingIMP = imp_implementationWithSelector(forwardingSEL, originTypes);
     NSAssert(originIMP != forwardingIMP, @"originIMP != forwardingIMP");
     method_setImplementation(originMethod, forwardingIMP);
     
@@ -583,38 +684,37 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 
 - (void)omt_forwardInvocation:(NSInvocation *)invocation
 {
-    NSArray *argList = [invocation omt_getArguments];
-    
-    NSString *finalSelectorName = [NSStringFromSelector(invocation.selector) stringByReplacingOccurrencesOfString:OMTMessageFinalPrefix withString:@""];
-    NSUInteger loc = [finalSelectorName rangeOfString:@"->"].location;
-    NSString *originClassName = [finalSelectorName substringWithRange:NSMakeRange(0, loc)];
-    NSString *originSelectorName = [finalSelectorName substringWithRange:NSMakeRange(loc + 2, finalSelectorName.length - loc - 2)];
-    Class originClass = NSClassFromString(originClassName);
-    SEL originSelector = NSSelectorFromString(originSelectorName);
-    
-    // XXX before和after回调输出日志会调用[obj description]，而description方法有可能调用类被trace的方法，最后造成递归调用。
-    // 解决: 查看函数调用栈，如果发现存在OMTBlock的如下两个方法，说明就是description导致的递归调用。发现递归就跳过runBefore
-    //      和runAfter调用，直接调用invoke！需要注意的是，这个查询堆栈的操作比较损失性能！
-    BOOL recursiveCallExists = [self.class recursiveCallExistsAtFuncArray:@[OMTTraceRunBeforeSel, OMTTraceRunAfterSel]];
-    OMTBlock *block = [self blockWithTarget:invocation.target];
-    NSDate *start = nil, *end = nil;
-    
-    NSInteger deep = self.deep++;
-    
-    // 1 原方法调用前回调
-    if (!recursiveCallExists) {
-        [block runBefore:invocation.target class:originClass sel:originSelector args:argList deep:deep];
-        start = [NSDate date];
+    if (self.disableTrace) {
+        [invocation invoke];
+        return;
     }
     
+    Class originClass = [invocation omt_originClass];
+    SEL originSelector = [invocation omt_originSelector];
+    // XXX 通过堆栈搜索递归调用会有挺大的性能损耗。但确实不知道怎么处理比较好，了解的麻烦知会email一下我
+    BOOL disableTrace = [[self class] recursiveInvocationAtSelectorArray:@[OMTBlockRunBeforeSelector,
+                                                                           OMTBlockRunAfterSelector,
+                                                                           OMTInvocationGetReturnValueSelector,
+                                                                           OMTInvocationGetArgumentsSelector]];
+    OMTBlock *block = [self blockWithTarget:invocation.target];
+    NSDate *start = nil;
+    
+    int deep = self.deep++;
+    
+    // 1 原方法调用前回调
+    if (!disableTrace) {
+        [block runBefore:invocation.target class:originClass sel:originSelector args:[invocation omt_getArguments] deep:deep];
+        start = [NSDate date];
+    }
+
     // 2 调用原方法
     [invocation invoke];
     
     // 3 原方法调用后回调
-    if (!recursiveCallExists) {
-        end = [NSDate date];
-        NSTimeInterval interval = [end timeIntervalSinceDate:start];
-        [block runAfter:invocation.target class:originClass sel:originSelector args:argList interval:interval deep:deep retValue:[invocation omt_getReturnValue]];
+    // hooking dealloc only valid before position
+    if (!disableTrace && ![NSStringFromSelector(originSelector) isEqualToString:@"dealloc"]) {
+        NSTimeInterval interval = [[NSDate date] timeIntervalSinceDate:start];
+        [block runAfter:invocation.target class:originClass sel:originSelector ret:[invocation omt_getReturnValue] deep:deep interval:interval];
     }
     
     self.deep--;
@@ -622,7 +722,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 
 @end
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 #pragma mark - OMTBlock
 
 @implementation OMTBlock
@@ -636,23 +736,23 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     }
 }
 
-- (void)runBefore:(id)target class:(Class)cls sel:(SEL)sel args:(NSArray *)args deep:(NSInteger)deep
+- (void)runBefore:(id)target class:(Class)cls sel:(SEL)sel args:(NSArray *)args deep:(int)deep
 {
     if (self.before) {
         self.before(target, cls, sel, args, deep);
     }
 }
 
-- (void)runAfter:(id)target class:(Class)cls sel:(SEL)sel args:(NSArray *)args interval:(NSTimeInterval)interval deep:(NSInteger)deep retValue:(id)retValue
+- (void)runAfter:(id)target class:(Class)cls sel:(SEL)sel ret:(id)ret deep:(int)deep interval:(NSTimeInterval)interval
 {
     if (self.after) {
-        self.after(target, cls, sel, args, interval, deep, retValue);
+        self.after(target, cls, sel, ret, deep, interval);
     }
 }
 
 @end
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 #pragma mark - OMTMessageStub
 
 @implementation OMTMessageStub
@@ -672,13 +772,13 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 {
     Method method = class_getInstanceMethod(object_getClass(self.target), self.selector);
     if (NULL == method) {
-        OMT_LOGE(@"No Method, target:%@ selector:%@", self.target, NSStringFromSelector(self.selector));
+        OMT_LOGE(@"No Method, target: %@ selector: %@", self.target, NSStringFromSelector(self.selector));
         assert(NULL != method);
     }
     
     const char *types = method_getTypeEncoding(method);
     if (NULL == types) {
-        OMT_LOGE(@"No Types, target:%@ selector:%@", self.target, NSStringFromSelector(self.selector));
+        OMT_LOGE(@"No Types, target: %@ selector: %@", self.target, NSStringFromSelector(self.selector));
         assert(NULL != types);
     }
     
@@ -690,7 +790,11 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     anInvocation.target = self.target;
     anInvocation.selector = self.selector;
     
-    [[OCMethodTrace getInstance] omt_forwardInvocation:anInvocation];
+    // 勿删，调试观察类名和方法名
+    __unused const char *className = [NSStringFromClass([self.target class]) UTF8String];
+    __unused const char *selectorName = [NSStringFromSelector(self.selector) UTF8String];
+    
+    [[OCMethodTrace sharedInstance] omt_forwardInvocation:anInvocation];
 }
 
 - (NSString *)description
@@ -701,7 +805,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 
 @end
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 #pragma mark - NSObject (OCMethodTrace)
 
 @implementation NSObject (OCMethodTrace)
@@ -733,18 +837,34 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 
 @end
 
-///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 #pragma mark - NSInvocation (OCMethodTrace)
 
 @implementation NSInvocation (OCMethodTrace)
+
+- (Class)omt_originClass
+{
+    NSString *finalSelectorName = [NSStringFromSelector(self.selector) stringByReplacingOccurrencesOfString:OMTMessageFinalPrefix withString:@""];
+    NSUInteger location = [finalSelectorName rangeOfString:@"->"].location;
+    NSString *originClassName = [finalSelectorName substringWithRange:NSMakeRange(0, location)];
+    return NSClassFromString(originClassName);
+}
+
+- (SEL)omt_originSelector
+{
+    NSString *finalSelectorName = [NSStringFromSelector(self.selector) stringByReplacingOccurrencesOfString:OMTMessageFinalPrefix withString:@""];
+    NSUInteger location = [finalSelectorName rangeOfString:@"->"].location;
+    NSString *originSelectorName = [finalSelectorName substringWithRange:NSMakeRange(location + 2, finalSelectorName.length - location - 2)];
+    return NSSelectorFromString(originSelectorName);
+}
 
 - (id)omt_getReturnValue
 {
     const char *returnType = self.methodSignature.methodReturnType;
     id ret = nil;
     
-    // 跳过const
-    if (returnType[0] == _C_CONST) {
+    // 跳过类型限定符
+    if (omt_isTypeQualifier(returnType[0])) {
         returnType++;
     }
     
@@ -800,7 +920,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     else if (0 == strcmp(returnType, @encode(id))) {
         __unsafe_unretained id ret_temp;
         [self getReturnValue:&ret_temp];
-        ret = ID_NOT_NIL(ret_temp);
+        ret = [[OCMethodTrace sharedInstance] descriptionWithTarget:ret_temp selector:[self omt_originSelector] returnState:YES];
     }
     else if (0 == strcmp(returnType, @encode(Class))) {
         Class ret_temp;
@@ -819,16 +939,14 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
         ret = [NSString stringWithFormat:@"%p", ret_temp];
     }
     else if (returnType[0] == _C_PTR) {
+        void *ret_temp;
+        [self getReturnValue:&ret_temp];
         if (0 == strcmp(returnType, @encode(CFStringRef))) {
-            void *return_temp;
-            [self getReturnValue:&return_temp];
-            ret = (__bridge NSString *)return_temp;
+            ret = [NSString stringWithString:ret_temp ? (__bridge NSString *)ret_temp : @"NULL"]; // 深拷贝
         }
         if (nil == ret) {
             // 模仿lldb bt堆栈打印形式，直接打印地址
-            void *return_temp;
-            [self getReturnValue:&return_temp];
-            ret = [NSString stringWithFormat:@"%p", return_temp];
+            ret = [NSString stringWithFormat:@"%p", ret_temp];
         }
     }
     
@@ -851,8 +969,8 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
         const char *argumentType = [methodSignature getArgumentTypeAtIndex:i];
         id arg = nil;
         
-        // 跳过const
-        if (argumentType[0] == _C_CONST) {
+        // 跳过类型限定符
+        if (omt_isTypeQualifier(argumentType[0])) {
             argumentType++;
         }
         
@@ -906,7 +1024,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
         else if (0 == strcmp(argumentType, @encode(id))) {
             __unsafe_unretained id arg_temp;
             [self getArgument:&arg_temp atIndex:i];
-            arg = ID_NOT_NIL(arg_temp);
+            arg = [[OCMethodTrace sharedInstance] descriptionWithTarget:self.target selector:[self omt_originSelector] returnState:NO];
         }
         else if (0 == strcmp(argumentType, @encode(Class))) {
             Class arg_temp;
@@ -925,15 +1043,13 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
             arg = [NSString stringWithFormat:@"%p", arg_temp];
         }
         else if (argumentType[0] == _C_PTR) {
+            void *arg_temp;
+            [self getArgument:&arg_temp atIndex:i];
             if (0 == strcmp(argumentType, @encode(CFStringRef))) {
-                void *arg_temp;
-                [self getArgument:&arg_temp atIndex:i];
-                arg = (__bridge NSString *)arg_temp;
+                arg = [NSString stringWithString:arg_temp ? (__bridge NSString *)arg_temp : @"NULL"]; // 深拷贝
             }
             if (nil == arg) {
                 // 则模仿lldb bt堆栈打印形式，直接打印地址
-                void *arg_temp;
-                [self getArgument:&arg_temp atIndex:i];
                 arg = [NSString stringWithFormat:@"%p", arg_temp];
             }
         }

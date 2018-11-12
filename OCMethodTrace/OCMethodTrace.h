@@ -31,36 +31,39 @@ typedef BOOL (^OMTConditionBlock)(SEL sel);
 // @param sel 方法名
 // @param args 参数列表
 // @param deep 调用层次
-typedef void (^OMTBeforeBlock)(id target, Class cls, SEL sel, NSArray *args, NSInteger deep);
+typedef void (^OMTBeforeBlock)(id target, Class cls, SEL sel, NSArray *args, int deep);
 
 // 方法调用后会调用该block
 // @param target 跟踪目标对象
 // @param cls 调用方法所在的类(可以是target所在的类，也可以是target的父类)
 // @param sel 方法名
-// @param args 参数列表
-// @param interval 执行方法的ms耗时
+// @param ret 返回值
 // @param deep 调用层次
-// @param retValue 返回值
-typedef void (^OMTAfterBlock)(id target, Class cls, SEL sel, NSArray *args, NSTimeInterval interval, NSInteger deep, id retValue);
+// @param interval 执行方法的ms耗时
+typedef void (^OMTAfterBlock)(id target, Class cls, SEL sel, id ret, int deep, NSTimeInterval interval);
 
 typedef NS_ENUM(NSUInteger, OMTLogLevel) {
     OMTLogLevelError    = 0,
     OMTLogLevelDebug    = 1,
 };
 
-@protocol OCMethodTraceLogDelegate <NSObject>
+@protocol OCMethodTraceDelegate <NSObject>
 
 @optional
+// description回调。获取target的description，returnState表示是否正在或者即将进入after返回状态
+- (NSString *)descriptionWithTarget:(id)target selector:(SEL)selector returnState:(BOOL)returnState;
+// 日志回调
 - (void)log:(OMTLogLevel)level format:(NSString *)format, ... NS_FORMAT_FUNCTION(2,3);
 
 @end
 
 @interface OCMethodTrace : NSObject
 
-@property (nonatomic, weak) id<OCMethodTraceLogDelegate> logDelegate;
-@property (nonatomic, assign) OMTLogLevel logLevel; // 默认OMTLogLevelDebug
+@property (nonatomic, assign) BOOL disableTrace; // 屏蔽before和after调用，hook完成后默认打开
+@property (nonatomic, weak) id<OCMethodTraceDelegate> delegate; // 回调
+@property (nonatomic, assign) OMTLogLevel logLevel; // 日志级别，默认OMTLogLevelDebug
 
-+ (OCMethodTrace *)getInstance;
++ (OCMethodTrace *)sharedInstance;
 
 // 跟踪打印目标(实例或类)方法调用
 // @param cls 跟踪打印目标类
