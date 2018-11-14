@@ -7,11 +7,11 @@
 		<key>LogLevel</key>
 		<integer>0</integer>
 		<key>LogWhen</key>
-		<integer>1</integer>
+		<integer>0</integer>
 		<key>LogMatchString</key>
 		<string>tiger</string>
 		<key>TraceFlag</key>
-		<integer>0</integer>
+		<integer>2</integer>
 		<key>TraceObject</key>
 		<integer>1</integer>
 		<key>CORE_CLASS_LIST</key>
