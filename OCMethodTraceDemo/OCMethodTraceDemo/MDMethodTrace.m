@@ -620,6 +620,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
     
     MDLog(@" ");
     MDLog(@"////////////////////////////////////////////////////////////////////////////////");
+    MDLog(@"// Usage: https://github.com/omxcodec/OCMethodTrace/blob/master/README.md");
     MDLog(@"// Trace: %@%@", [[self class] NSStringFromTraceObject:self.traceObject],
           [[self class] isTestTraceObject:self.traceObject] ? @"(仅测试验证使用，不建议开启)" : @"");
     MDLog(@"////////////////////////////////////////////////////////////////////////////////");
