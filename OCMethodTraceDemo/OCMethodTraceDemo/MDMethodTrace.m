@@ -138,7 +138,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
         id methodList = config[MDCONFIG_METHOD_WHITE_LIST_KEY];
         if (![methodList isKindOfClass:[NSArray class]]) {
             MDFatal(@"Class %@ %@ should be array", info.name, MDCONFIG_METHOD_WHITE_LIST_KEY);
-        } else {
+        } else if (info.mode == MDTraceModeIncludeWhiteList) {
             info.methodList = methodList;
         }
     }
@@ -148,7 +148,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
         id methodList = config[MDCONFIG_METHOD_BLACK_LIST_KEY];
         if (![methodList isKindOfClass:[NSArray class]]) {
             MDFatal(@"Class %@ %@ should be array", info.name, MDCONFIG_METHOD_BLACK_LIST_KEY);
-        } else {
+        } else if (info.mode == MDTraceModeExcludeBlackList) {
             info.methodList = methodList;
         }
     }
