@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		4C09CF26214DFFBD00870465 /* a1a2-selectortramps-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF1C214DFFBD00870465 /* a1a2-selectortramps-arm64.s */; };
 		4C09CF27214DFFBD00870465 /* a2a3-selectortramps-arm.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF1D214DFFBD00870465 /* a2a3-selectortramps-arm.s */; };
-		4C09CF28214DFFBD00870465 /* selectortramps-util.mac in Resources */ = {isa = PBXBuildFile; fileRef = 4C09CF1F214DFFBD00870465 /* selectortramps-util.mac */; };
+		4C09CF28214DFFBD00870465 /* selectortramps.mac in Resources */ = {isa = PBXBuildFile; fileRef = 4C09CF1F214DFFBD00870465 /* selectortramps.mac */; };
 		4C09CF29214DFFBD00870465 /* a1a2-selectortramps-arm.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF20214DFFBD00870465 /* a1a2-selectortramps-arm.s */; };
 		4C09CF2A214DFFBD00870465 /* OCSelectorTrampolines.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF21214DFFBD00870465 /* OCSelectorTrampolines.mm */; };
 		4C09CF2B214DFFBD00870465 /* a2a3-selectortramps-x86_64.s in Sources */ = {isa = PBXBuildFile; fileRef = 4C09CF22214DFFBD00870465 /* a2a3-selectortramps-x86_64.s */; };
@@ -45,7 +45,7 @@
 		4C09CF1C214DFFBD00870465 /* a1a2-selectortramps-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a1a2-selectortramps-arm64.s"; sourceTree = "<group>"; };
 		4C09CF1D214DFFBD00870465 /* a2a3-selectortramps-arm.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a2a3-selectortramps-arm.s"; sourceTree = "<group>"; };
 		4C09CF1E214DFFBD00870465 /* OCSelectorTrampolines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OCSelectorTrampolines.h; sourceTree = "<group>"; };
-		4C09CF1F214DFFBD00870465 /* selectortramps-util.mac */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "selectortramps-util.mac"; sourceTree = "<group>"; };
+		4C09CF1F214DFFBD00870465 /* selectortramps.mac */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = selectortramps.mac; sourceTree = "<group>"; };
 		4C09CF20214DFFBD00870465 /* a1a2-selectortramps-arm.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a1a2-selectortramps-arm.s"; sourceTree = "<group>"; };
 		4C09CF21214DFFBD00870465 /* OCSelectorTrampolines.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = OCSelectorTrampolines.mm; sourceTree = "<group>"; };
 		4C09CF22214DFFBD00870465 /* a2a3-selectortramps-x86_64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = "a2a3-selectortramps-x86_64.s"; sourceTree = "<group>"; };
@@ -133,9 +133,9 @@
 				4CB2B7BC2144BEF200474F3B /* MDConfigManager.m */,
 				4CB2B7B92144BEF200474F3B /* MDMethodTrace.h */,
 				4CB2B7BB2144BEF200474F3B /* MDMethodTrace.m */,
+				4CB2B7C72144C35B00474F3B /* TestUtils.h */,
 				4CB2B7C12144C25E00474F3B /* tiger.h */,
 				4CB2B7C32144C25F00474F3B /* tiger.m */,
-				4CB2B7C72144C35B00474F3B /* TestUtils.h */,
 				4CB2B78F2144BC9F00474F3B /* ViewController.h */,
 				4CB2B7902144BC9F00474F3B /* ViewController.m */,
 			);
@@ -165,7 +165,7 @@
 				4CB2B7B12144BEDD00474F3B /* OCMethodTrace.m */,
 				4C09CF1E214DFFBD00870465 /* OCSelectorTrampolines.h */,
 				4C09CF21214DFFBD00870465 /* OCSelectorTrampolines.mm */,
-				4C09CF1F214DFFBD00870465 /* selectortramps-util.mac */,
+				4C09CF1F214DFFBD00870465 /* selectortramps.mac */,
 			);
 			name = OCMethodTrace;
 			path = ../OCMethodTrace;
@@ -253,7 +253,7 @@
 			files = (
 				4CB2B7992144BCA000474F3B /* LaunchScreen.storyboard in Resources */,
 				4CB2B7962144BCA000474F3B /* Assets.xcassets in Resources */,
-				4C09CF28214DFFBD00870465 /* selectortramps-util.mac in Resources */,
+				4C09CF28214DFFBD00870465 /* selectortramps.mac in Resources */,
 				4CB2B7942144BC9F00474F3B /* Main.storyboard in Resources */,
 				4CB2B7C02144BF6900474F3B /* MDConfig.plist in Resources */,
 			);
