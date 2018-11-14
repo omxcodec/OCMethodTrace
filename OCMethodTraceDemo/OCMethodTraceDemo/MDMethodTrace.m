@@ -576,13 +576,22 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
         return;
     }
     
+    MDLog(@" ");
+    MDLog(@"////////////////////////////////////////////////////////////////////////////////");
+    MDLog(@"// Usage: https://github.com/omxcodec/OCMethodTrace/blob/master/README.md");
+    MDLog(@"////////////////////////////////////////////////////////////////////////////////");
+    MDLog(@" ");
+    
     self.config         = [NSMutableDictionary dictionaryWithDictionary:config];
     self.logLevel       = [SAFE_CHECK(self.config[MDCONFIG_LOG_LEVEL_KEY], NSNumber) unsignedIntegerValue];
     self.logWhen        = [SAFE_CHECK(self.config[MDCONFIG_LOG_WHEN_KEY], NSNumber) unsignedIntegerValue];
     self.traceFlag      = [SAFE_CHECK(self.config[MDCONFIG_TRACE_FLAG_KEY], NSNumber) unsignedIntegerValue];
     self.traceObject    = [SAFE_CHECK(self.config[MDCONFIG_TRACE_OBJECT_KEY], NSNumber) unsignedIntegerValue];
     
-    MDLog(@"logLevel: %tu: logWhen: %tu traceFlag: %tu traceObject: %tu", self.logLevel, self.logWhen, self.traceFlag, self.traceObject);
+    MDLog(@"logLevel: %tu: logWhen: %tu traceFlag: %tu traceObject: %tu(%@%@)",
+          self.logLevel, self.logWhen, self.traceFlag, self.traceObject,
+          [[self class] NSStringFromTraceObject:self.traceObject],
+          [[self class] isTestTraceObject:self.traceObject] ? @"(仅测试验证使用，不建议开启)" : @"");
     
     NSAssert(self.logLevel >= MDTraceLogLeveError && self.logLevel < MDTraceLogLeveMax, @"invalid loglevel");
     NSAssert(self.logWhen >= MDTraceLogWhenStartup && self.logWhen < MDTraceLogWhenMax, @"invalid logWhen");
@@ -617,14 +626,6 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
     
     [self parseClassListInfo];
     [self dumpClassListInfo];
-    
-    MDLog(@" ");
-    MDLog(@"////////////////////////////////////////////////////////////////////////////////");
-    MDLog(@"// Usage: https://github.com/omxcodec/OCMethodTrace/blob/master/README.md");
-    MDLog(@"// Trace: %@%@", [[self class] NSStringFromTraceObject:self.traceObject],
-          [[self class] isTestTraceObject:self.traceObject] ? @"(仅测试验证使用，不建议开启)" : @"");
-    MDLog(@"////////////////////////////////////////////////////////////////////////////////");
-    MDLog(@" ");
     
     if (self.traceObject == MDTraceObjectAllClass) {
         int numberOfClasses = objc_getClassList(NULL, 0);
