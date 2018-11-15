@@ -439,7 +439,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
         return;
     }
     
-    MDLog(@"DUMP %@ CLASS LIST INFO:", [[self class] NSStringFromTraceObject:self.traceObject]);
+    MDLog(@"Dump %@ class list info: ", [[self class] NSStringFromTraceObject:self.traceObject]);
     MDLog(@"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     NSArray *classInfoList = [self classInfoList];
     for (int i = 0; i < classInfoList.count; i++) {
@@ -611,13 +611,13 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
     // 屏蔽trace输出。避免hook准备过程中导致的递归调用
     [self enableTrace:NO];
     
-    [self traceObjectWithConfig:self.config];
+    [self traceClassObject];
     
     // 恢复trace输出
     [self enableTrace:YES];
 }
 
-- (void)traceObjectWithConfig:(NSDictionary *)config
+- (void)traceClassObject
 {
     if (self.traceObject == MDTraceObjectNone) {
         MDLog(@"Method Trace is disabled");
@@ -626,6 +626,14 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
     
     [self parseClassListInfo];
     [self dumpClassListInfo];
+    [self traceClassListInfo];
+}
+   
+- (void)traceClassListInfo
+{
+    MDLog(@" ");
+    MDLog(@"////////////////////////////////////////////////////////////////////////////////");
+    MDLog(@" ");
     
     if (self.traceObject == MDTraceObjectAllClass) {
         int numberOfClasses = objc_getClassList(NULL, 0);
@@ -804,7 +812,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
                 MDLog("%@", logString);
             }
         } after:^(id target, Class cls, SEL sel, id ret, int deep, NSTimeInterval interval) {
-            // 因为多线程并发，pendingAfterLog变量维护的输出状态有可能并不是那么准，但是打印调试可以容忍
+            // 因为多线程并发，numberOfPendingLog变量维护的输出状态有可能并不是那么准，但是打印调试可以容忍
             if (self.numberOfPendingLog > 0) {
                 self.numberOfPendingLog--;
                 NSMutableString *deepString = [NSMutableString new];

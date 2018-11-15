@@ -310,7 +310,6 @@ _pageAndIndexContainingIMP(IMP anImp, uintptr_t *outIndex,
     return nil;
 }
 
-
 static ArgumentMode 
 _argumentModeForSignature(const char *signature)
 {
@@ -332,7 +331,6 @@ _argumentModeForSignature(const char *signature)
     
     return aMode;
 }
-
 
 #pragma mark Public API
 IMP imp_implementationWithSelector(SEL aSel, const char *signature)
@@ -379,7 +377,6 @@ IMP imp_implementationWithSelector(SEL aSel, const char *signature)
     
     return returnIMP;
 }
-
 
 SEL imp_getSelector(IMP anImp) {
     uintptr_t index;
