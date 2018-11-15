@@ -5,7 +5,7 @@ OCMethodTrace - Trace Any Objective-C Method Calls
 ## 功能：
 1. 支持任意OC实例(类)方法的跟踪打印
 2. 支持多架构(arm32，arm64，i386，x86_64)
-3. 支持跟踪存在继承关系的类的方法调用
+3. 支持跟踪父类和子类相同的方法
 4. 支持各种灵活配置，包括方法黑白名单等
 
 ## 配置说明：
@@ -58,7 +58,7 @@ OCMethodTrace - Trace Any Objective-C Method Calls
     * USER_CLASS_LIST：用户自己指定的类，可以任意发挥。但是如果CORE_CLASS_LIST有相同的类，会优先CORE_CLASS_LIST中的配置。合并算法详见"+[MDTraceClassInfo mergeInfoWithCoreInfo:userInfo:userInfo:]"
 
 ## 技术要点：
-### 支持跟踪存在继承关系的类的方法调用  
+### 支持跟踪父类和子类相同的方法  
     SatanWoo提出了一个方法(见感谢2)，使用“runtime的消息转发机制+跳板原理(桥)”实现，流程：
     每个方法置换到不同的IMP桥上 -> 从桥上反推出当前的调用关系（class和selector）-> 构造一个中间态新名字 -> forwardingTargetForSelector(self, 中间态新名字) 。
     但是SatanWoo的demo(见感谢3)有两个比较大的缺陷：
