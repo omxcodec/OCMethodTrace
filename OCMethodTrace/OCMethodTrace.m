@@ -153,8 +153,8 @@ static BOOL isCGAffineTransform(const char *type);
 - (void)initSupportedTypeDict;
 // 根据错误码返回错误描述
 + (NSString *)errorString:(OMTErrorCode)errorCode;
-// 判断函数数组里任意函数是否存在递归调用
-+ (BOOL)recursiveInvocationAtSelectorArray:(NSArray *)selectorArray;
+// 判断函数数组里任意函数是否存在递归循环调用
++ (BOOL)detectInfiniteLoopAtSelectorArray:(NSArray *)selectorArray;
 // 获取target的description
 - (NSString *)descriptionWithTarget:(id)target selector:(SEL)selector returnState:(BOOL)returnState;
 // 判断类是否在内部默认黑名单中
@@ -458,7 +458,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     return [NSString stringWithUTF8String:kCodeToString[i].errorString];
 }
 
-+ (BOOL)recursiveInvocationAtSelectorArray:(NSArray *)selectorArray
++ (BOOL)detectInfiniteLoopAtSelectorArray:(NSArray *)selectorArray
 {
     void *callstack[128];
     int frames = backtrace(callstack, 128);
@@ -692,29 +692,31 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     Class originClass = [invocation omt_originClass];
     SEL originSelector = [invocation omt_originSelector];
     // XXX 通过堆栈搜索递归调用会有挺大的性能损耗。但确实不知道怎么处理比较好，了解的麻烦知会email一下我
-    BOOL disableTrace = [[self class] recursiveInvocationAtSelectorArray:@[OMTBlockRunBeforeSelector,
-                                                                           OMTBlockRunAfterSelector,
-                                                                           OMTInvocationGetReturnValueSelector,
-                                                                           OMTInvocationGetArgumentsSelector]];
-    OMTBlock *block = [self blockWithTarget:invocation.target];
-    NSDate *start = nil;
-    
+    BOOL disableTrace = [[self class] detectInfiniteLoopAtSelectorArray:@[OMTBlockRunBeforeSelector,
+                                                                          OMTBlockRunAfterSelector,
+                                                                          OMTInvocationGetReturnValueSelector,
+                                                                          OMTInvocationGetArgumentsSelector]];
     int deep = self.deep++;
     
-    // 1 原方法调用前回调
     if (!disableTrace) {
+        OMTBlock *block = [self blockWithTarget:invocation.target];
+        
+        // 1 原方法调用前回调
         [block runBefore:invocation.target class:originClass sel:originSelector args:[invocation omt_getArguments] deep:deep];
-        start = [NSDate date];
-    }
-
-    // 2 调用原方法
-    [invocation invoke];
-    
-    // 3 原方法调用后回调
-    // hooking dealloc only valid before position
-    if (!disableTrace && ![NSStringFromSelector(originSelector) isEqualToString:@"dealloc"]) {
-        NSTimeInterval interval = [[NSDate date] timeIntervalSinceDate:start];
-        [block runAfter:invocation.target class:originClass sel:originSelector ret:[invocation omt_getReturnValue] deep:deep interval:interval];
+        NSDate *start = [NSDate date];
+        
+        // 2 调用原方法
+        [invocation invoke];
+        
+        // 3 原方法调用后回调
+        // hooking dealloc only valid before position
+        if (![NSStringFromSelector(originSelector) isEqualToString:@"dealloc"]) {
+            NSTimeInterval interval = [[NSDate date] timeIntervalSinceDate:start];
+            [block runAfter:invocation.target class:originClass sel:originSelector ret:[invocation omt_getReturnValue] deep:deep interval:interval];
+        }
+    } else {
+        // 直接调用原方法
+        [invocation invoke];
     }
     
     self.deep--;
