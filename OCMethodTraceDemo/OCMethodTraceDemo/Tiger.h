@@ -1,5 +1,5 @@
 //
-//  tiger.h
+//  Tiger.h
 //  OCMethodTraceDemo
 //
 //  Created by Michael Chen on 2018/9/9.
@@ -8,6 +8,6 @@
 
 #import "Animal.h"
 
-@interface tiger : Animal
+@interface Tiger : Animal
 
 @end

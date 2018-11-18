@@ -27,7 +27,7 @@
 		4CB2B7BD2144BEF200474F3B /* MDMethodTrace.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7BB2144BEF200474F3B /* MDMethodTrace.m */; };
 		4CB2B7BE2144BEF200474F3B /* MDConfigManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7BC2144BEF200474F3B /* MDConfigManager.m */; };
 		4CB2B7C02144BF6900474F3B /* MDConfig.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4CB2B7BF2144BF6900474F3B /* MDConfig.plist */; };
-		4CB2B7C52144C25F00474F3B /* tiger.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7C32144C25F00474F3B /* tiger.m */; };
+		4CB2B7C52144C25F00474F3B /* Tiger.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7C32144C25F00474F3B /* Tiger.m */; };
 		4CB2B7C62144C25F00474F3B /* Animal.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2B7C42144C25F00474F3B /* Animal.m */; };
 /* End PBXBuildFile section */
 
@@ -72,9 +72,9 @@
 		4CB2B7BB2144BEF200474F3B /* MDMethodTrace.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MDMethodTrace.m; sourceTree = "<group>"; };
 		4CB2B7BC2144BEF200474F3B /* MDConfigManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MDConfigManager.m; sourceTree = "<group>"; };
 		4CB2B7BF2144BF6900474F3B /* MDConfig.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = MDConfig.plist; sourceTree = "<group>"; };
-		4CB2B7C12144C25E00474F3B /* tiger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tiger.h; sourceTree = "<group>"; };
+		4CB2B7C12144C25E00474F3B /* Tiger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Tiger.h; sourceTree = "<group>"; };
 		4CB2B7C22144C25E00474F3B /* Animal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Animal.h; sourceTree = "<group>"; };
-		4CB2B7C32144C25F00474F3B /* tiger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = tiger.m; sourceTree = "<group>"; };
+		4CB2B7C32144C25F00474F3B /* Tiger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Tiger.m; sourceTree = "<group>"; };
 		4CB2B7C42144C25F00474F3B /* Animal.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Animal.m; sourceTree = "<group>"; };
 		4CB2B7C72144C35B00474F3B /* TestUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TestUtils.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -134,8 +134,8 @@
 				4CB2B7B92144BEF200474F3B /* MDMethodTrace.h */,
 				4CB2B7BB2144BEF200474F3B /* MDMethodTrace.m */,
 				4CB2B7C72144C35B00474F3B /* TestUtils.h */,
-				4CB2B7C12144C25E00474F3B /* tiger.h */,
-				4CB2B7C32144C25F00474F3B /* tiger.m */,
+				4CB2B7C12144C25E00474F3B /* Tiger.h */,
+				4CB2B7C32144C25F00474F3B /* Tiger.m */,
 				4CB2B78F2144BC9F00474F3B /* ViewController.h */,
 				4CB2B7902144BC9F00474F3B /* ViewController.m */,
 			);
@@ -277,7 +277,7 @@
 				4CB2B7B62144BEDE00474F3B /* OCMethodTrace.m in Sources */,
 				4C09CF26214DFFBD00870465 /* a1a2-selectortramps-arm64.s in Sources */,
 				4CB2B7912144BC9F00474F3B /* ViewController.m in Sources */,
-				4CB2B7C52144C25F00474F3B /* tiger.m in Sources */,
+				4CB2B7C52144C25F00474F3B /* Tiger.m in Sources */,
 				4C09CF2A214DFFBD00870465 /* OCSelectorTrampolines.mm in Sources */,
 				4CB2B79C2144BCA000474F3B /* main.m in Sources */,
 				4C09CF2C214DFFBD00870465 /* a1a2-selectortramps-x86_64.s in Sources */,
