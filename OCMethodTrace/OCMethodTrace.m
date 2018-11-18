@@ -873,9 +873,9 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     // 基本类型
     #define GET_RETURN_VALUE(_type) \
         if (0 == strcmp(returnType, @encode(_type))) { \
-            _type val = 0; \
-            [self getReturnValue:&val]; \
-            ret = @(val); \
+            _type ret_temp = 0; \
+            [self getReturnValue:&ret_temp]; \
+            ret = @(ret_temp); \
         }
     
     // 结构体类型
