@@ -17,9 +17,9 @@ OCMethodTrace - Trace Any Objective-C Method Calls
 #### LogWhen：Trace日志输出时机，对应MDTraceLogWhen，必须定义，默认值：0
     0：MDTraceLogWhenStartup ，启动即输出日志
     1：MDTraceLogWhenVolume ，根据音量键控制输出日志(增加音量:输出日志;降低音量:关闭日志;默认时关闭日志)
-    2：MDTraceLogWhenMatchString ，输出日志包含匹配字符串才输出日志
+    2：MDTraceLogWhenRegexString ，输出日志包含匹配字符串才输出日志
     
-    LogMatchString：日志正则匹配字符串，仅当logWhen=MDTraceLogWhenMatchString有效。当日志匹配该字符串时才输出
+    LogRegexString：日志正则匹配字符串，仅当logWhen=MDTraceLogWhenRegexString有效。日志包含指定正则字符串才输出日志
 
 #### TraceFlag：Trace控制位(尽量在该处扩展)，对应MDTraceFlag，全局必须定义，默认值：0x02，指定类可选定义，默认值：0x00
     0x01：MDTraceFlagDoesNotUseDescription，跳过调用对象description方法，避免不正规的description实现导致递归

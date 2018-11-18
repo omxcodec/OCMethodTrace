@@ -69,8 +69,8 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
 @property (nonatomic, strong) NSMutableDictionary   *config;
 @property (nonatomic, assign) MDTraceLogLevel       logLevel;               // 日志级别
 @property (nonatomic, assign) MDTraceLogWhen        logWhen;                // 日志输出时机
-@property (nonatomic, strong) NSString              *logMatchString;        // 日志正则匹配字符串，仅当logWhen=MDTraceLogWhenMatchString有效
-@property (nonatomic, assign) NSInteger             numberOfPendingLog;     // logMatchString匹配后，待输出afer日志个数
+@property (nonatomic, strong) NSString              *logRegexString;        // 日志正则匹配字符串，仅当logWhen=MDTraceLogWhenRegexString有效
+@property (nonatomic, assign) NSInteger             numberOfPendingLog;     // logRegexString匹配后，待输出afer日志个数
 @property (nonatomic, assign) MDTraceFlag           traceFlag;              // 控制trace行为的一些特殊flag
 @property (nonatomic, assign) MDTraceObject         traceObject;            // trace对象
 @property (nonatomic, assign) CGFloat               lastSystemVolume;       // 上一次系统音量
@@ -351,10 +351,13 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
 }
 
 // 正则匹配
-+ (BOOL)isMatchSearchString:(NSString *)searchString inputString:(NSString *)inputString
+// FIXME -[NSString rangeOfString:options:NSRegularExpressionSearch]在实际运行中会死循环，不太明白原因
++ (BOOL)isMatchRegexString:(NSString *)regexString inputString:(NSString *)inputString
 {
-    NSRange range = [inputString rangeOfString:searchString options:NSRegularExpressionSearch];
-    return range.location != NSNotFound;
+    NSError *error = NULL;
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:regexString options:NSRegularExpressionCaseInsensitive error:&error];
+    NSTextCheckingResult *result = [regex firstMatchInString:inputString options:0 range:NSMakeRange(0, [inputString length])];
+    return nil != result;
 }
 
 // 判断是否是构造函数(实现比较粗犷，不是特别准确)
@@ -598,12 +601,12 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
     NSAssert(self.traceFlag >= 0 && self.traceFlag <= MDTraceFlagMask, @"invalid traceFlag");
     NSAssert(self.traceObject >= MDTraceObjectNone && self.traceObject < MDTraceObjectMax, @"invalid traceObject");
     
-    if (self.logWhen == MDTraceLogWhenMatchString) {
-        self.logMatchString = SAFE_CHECK(config[MDCONFIG_LOG_MATCH_STRING_KEY], NSString);
-        if (self.logMatchString.length == 0) {
-            MDFatal(@"logMatchString is nil");
+    if (self.logWhen == MDTraceLogWhenRegexString) {
+        self.logRegexString = SAFE_CHECK(config[MDCONFIG_LOG_REGEX_STRING_KEY], NSString);
+        if (self.logRegexString.length == 0) {
+            MDFatal(@"logRegexString is nil");
         }
-        MDLog(@"logMatchString: %@", self.logMatchString);
+        MDLog(@"logRegexString: %@", self.logRegexString);
     }
     
     [self initLogger];
@@ -768,7 +771,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
             for (id object in methodList) {
                 NSString *methodName = SAFE_CHECK(object, NSString);
                 // 方法可以是正则表达式
-                if ([[self class] isMatchSearchString:methodName inputString:NSStringFromSelector(sel)]) {
+                if ([[self class] isMatchRegexString:methodName inputString:NSStringFromSelector(sel)]) {
                     return white;
                 }
             }
@@ -807,7 +810,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
             
             if (self.logWhen == MDTraceLogWhenStartup ||
                 self.logWhen == MDTraceLogWhenVolume ||
-                (self.logWhen == MDTraceLogWhenMatchString && [[self class] isMatchSearchString:self.logMatchString inputString:logString])) {
+                (self.logWhen == MDTraceLogWhenRegexString && [[self class] isMatchRegexString:self.logRegexString inputString:logString])) {
                 self.numberOfPendingLog++;
                 MDLog("%@", logString);
             }

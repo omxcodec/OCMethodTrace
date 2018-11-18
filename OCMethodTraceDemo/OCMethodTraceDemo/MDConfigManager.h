@@ -16,7 +16,7 @@
 #define MDCONFIG_TRACE_KEY                  @"MethodTrace"
 #define MDCONFIG_LOG_LEVEL_KEY              @"LogLevel"
 #define MDCONFIG_LOG_WHEN_KEY               @"LogWhen"
-#define MDCONFIG_LOG_MATCH_STRING_KEY       @"LogMatchString"   // 仅LogWhen=2有效
+#define MDCONFIG_LOG_REGEX_STRING_KEY       @"LogRegexString"   // 仅LogWhen=2有效
 #define MDCONFIG_TRACE_FLAG_KEY             @"TraceFlag"
 #define MDCONFIG_TRACE_OBJECT_KEY           @"TraceObject"
 #define MDCONFIG_CORE_CLASS_LIST            @"CORE_CLASS_LIST"
@@ -36,7 +36,7 @@ typedef NS_ENUM(NSUInteger, MDTraceLogLevel) {
 typedef NS_ENUM(NSUInteger, MDTraceLogWhen) {
     MDTraceLogWhenStartup       = 0,    // 启动即输出日志
     MDTraceLogWhenVolume        = 1,    // 根据音量键控制输出日志(增加音量:输出日志;降低音量:关闭日志;默认时关闭日志)
-    MDTraceLogWhenMatchString   = 2,    // 输出日志包含匹配字符串才输出日志
+    MDTraceLogWhenRegexString   = 2,    // 日志包含指定正则字符串才输出日志
     MDTraceLogWhenMax
 };
 

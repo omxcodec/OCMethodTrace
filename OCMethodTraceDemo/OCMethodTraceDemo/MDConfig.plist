@@ -8,7 +8,7 @@
 		<integer>0</integer>
 		<key>LogWhen</key>
 		<integer>0</integer>
-		<key>LogMatchString</key>
+		<key>LogRegexString</key>
 		<string>Tiger</string>
 		<key>TraceFlag</key>
 		<integer>2</integer>
