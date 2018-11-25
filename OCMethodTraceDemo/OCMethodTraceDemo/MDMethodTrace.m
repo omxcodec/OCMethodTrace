@@ -351,33 +351,13 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
 }
 
 // 正则匹配
-// FIXME -[NSString rangeOfString:options:NSRegularExpressionSearch]在实际运行中会死循环，不太明白原因
+// FIXME -[NSString rangeOfString:options:NSRegularExpressionSearch]在实际运行中有可能会死循环，不太明白原因
 + (BOOL)isMatchRegexString:(NSString *)regexString inputString:(NSString *)inputString
 {
     NSError *error = NULL;
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:regexString options:NSRegularExpressionCaseInsensitive error:&error];
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:regexString options:NSRegularExpressionDotMatchesLineSeparators | NSRegularExpressionAnchorsMatchLines error:&error];
     NSTextCheckingResult *result = [regex firstMatchInString:inputString options:0 range:NSMakeRange(0, [inputString length])];
     return nil != result;
-}
-
-// 判断是否是构造函数(实现比较粗犷，不是特别准确)
-+ (BOOL)isConstructorWithTarget:(id)target selector:(SEL)selector
-{
-    NSString *selectorName = NSStringFromSelector(selector);
-    if (![selectorName containsString:@"init"]) {
-        return NO;
-    }
-    
-    Method method = class_getInstanceMethod(object_getClass(target), selector);
-    if (NULL == method) {
-        MDLog(@"No Method, target: %@ selector: %@", [target class], NSStringFromSelector(selector));
-        assert(NULL != method);
-    }
-    
-    char returnType[1024];
-    memset(returnType, 0, sizeof(returnType));
-    method_getReturnType(method, returnType, sizeof(returnType));
-    return (0 == strcmp(returnType, @encode(id)));
 }
 
 // 获取object名称
@@ -395,7 +375,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
             name = @"引擎类";
             break;
         case MDTraceObjectAllClass:
-            name = @"引擎+用户类";
+            name = @"引擎+用户类+剩余非指定类";
             break;
         default:
             NSAssert1(0, @"Unkown trace object: %tu", traceObject);
@@ -799,7 +779,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
             // 2 当obj为类对象（包括元类和根类以及根元类）时，调用的是类方法：+ (Class)class，返回的结果为其本身。
             NSString *prefix = target == [target class] ?  @"+" : @"-";
             // target不是强引用，如果打印接口异步，可能未实际调用description就被释放了，所以提前获取desc，保证线程安全
-            NSString *description = [self descriptionWithTarget:target selector:sel returnState:NO];
+            NSString *description = [self descriptionWithTarget:target class:cls selector:sel targetPosition:OMTTargetPositionBeforeSelf];
             NSString *logString = nil;
             if ([target class] != [cls class]) {
                 // 如果是子类调用基类方法，则()内打印基类名
@@ -822,7 +802,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
                 for (int i = 0; i < deep; i++) {
                     [deepString appendString:@"-"];
                 }
-            
+                
                 NSString *prefix = target == [target class] ?  @"+" : @"-";
                 MDLog(@"%@%@ret:%@", deepString, prefix, ret);
             }
@@ -834,28 +814,58 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
 
 #pragma mark - OCMethodTraceDelegate
 
-- (NSString *)descriptionWithTarget:(id)target selector:(SEL)selector returnState:(BOOL)returnState
+- (NSString *)descriptionWithTarget:(id)target class:(Class)cls selector:(SEL)sel targetPosition:(OMTTargetPosition)targetPosition
 {
     if (nil == target) {
         return @"nil";
     }
     
-    // 调用构造函数时因为target还没初始化完全，建议before时先不调用description(after时可以调用)
-    NSString *className = NSStringFromClass([target class]);
+    NSString *targetClassName = NSStringFromClass([target class]);
     
     // 全局跳过对象description方法
     if (self.traceFlag & MDTraceFlagDoesNotUseDescription) {
-        return [NSString stringWithFormat:@"<%@: %p>", className, target];
+        return [NSString stringWithFormat:@"<%@: %p>", targetClassName, target];
     }
     
     // 类跳过对象description方法，粒度更小一点
-    MDTraceClassInfo *info = [self infoInClassInfoList:className];
+    MDTraceClassInfo *info = [self infoInClassInfoList:targetClassName];
     BOOL doesNotUseDescription = (nil != info && info.flag & MDTraceFlagDoesNotUseDescription);
     if (!doesNotUseDescription) {
-        // 当执行initXXX等构造函数，进入before回调时(before指非返回状态，after指返回状态)，因为实例对象并没有初始化完成，所以，此时不要调用target的description方法
-        doesNotUseDescription = !returnState && [[self class] isConstructorWithTarget:target selector:selector];
+        // 构造初始化函数特殊处理, 系统类初始化比较喜欢"_init"这样的方式
+        NSString *selectorName = NSStringFromSelector(sel);
+        BOOL isAllocFunc = [selectorName hasPrefix:@"new"] || [selectorName hasPrefix:@"alloc"];
+        BOOL maybeInitFunc = [selectorName hasPrefix:@"init"] || [selectorName hasPrefix:@"_init"];
+        BOOL isDeallocFunc = [selectorName isEqualToString:@"dealloc"];
+        if (isAllocFunc || maybeInitFunc) {
+            switch (targetPosition) {
+                case OMTTargetPositionBeforeSelf:
+                    // 调用构造函数时，此时实例还没初始化完全，不能调用description
+                    doesNotUseDescription = YES;
+                    break;
+                case OMTTargetPositionBeforeArgument:
+                    break;
+                case OMTTargetPositionAfterSelf:
+                case OMTTargetPositionAfterReturnValue:
+                    if (isAllocFunc) {
+                        doesNotUseDescription = YES;
+                    } else if (maybeInitFunc) {
+                        // 调用构造函数时，可能是调用父类的构造函数，此时实例还没初始化完全，不能调用description
+                        if (![targetClassName isEqualToString:NSStringFromClass(cls)]) {
+                            doesNotUseDescription = YES;
+                        }
+                    }
+                    break;
+                
+                default:
+                    break;
+            }
+        } else if (isDeallocFunc) {
+            // 析构函数所有只打印指针，因为dealloc after时，对象已被释放
+            doesNotUseDescription = YES;
+        }
     }
-    return doesNotUseDescription ? [NSString stringWithFormat:@"<%@: %p>", className, target] : [target description];
+    
+    return doesNotUseDescription ? [NSString stringWithFormat:@"<%@: %p>", targetClassName, target] : [target description];
 }
 
 - (void)log:(OMTLogLevel)level format:(NSString *)format, ...

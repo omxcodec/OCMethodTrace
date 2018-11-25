@@ -25,6 +25,7 @@
 #import <objc/message.h>
 #import <execinfo.h>
 #import <dlfcn.h>
+#import <pthread.h>
 #import "OCSelectorTrampolines.h"
 
 #define OMT_LOG(_level_, _fmt_, ...) do { \
@@ -44,8 +45,13 @@ static NSString *const OMTMessageTempPrefix                 = @"__OMTMessageTemp
 static NSString *const OMTMessageFinalPrefix                = @"__OMTMessageFinal_";
 static NSString *const OMTBlockRunBeforeSelector            = @"runBefore:";
 static NSString *const OMTBlockRunAfterSelector             = @"runAfter:";
-static NSString *const OMTInvocationGetReturnValueSelector  = @"omt_getReturnValue";
-static NSString *const OMTInvocationGetArgumentsSelector    = @"omt_getArguments";
+static NSString *const OMTDescriptionWithTargetSelector     = @"descriptionWithTarget:";
+
+// trace位置
+typedef NS_ENUM(NSUInteger, OMTTracePosition) {
+    OMTTracePositionBefore  = 1 << 0,   // before
+    OMTTracePositionAfter   = 1 << 1,   // after
+};
 
 // 错误码，对内使用，便于调试
 typedef NS_ENUM(NSUInteger, OMTErrorCode) {
@@ -138,35 +144,47 @@ static BOOL isCGAffineTransform(const char *type);
 
 @end
 
-@interface OCMethodTrace()
+@interface OCMethodTrace() {
+    pthread_mutex_t _blockMutex;
+    pthread_mutex_t _deepMutex;
+}
 
 @property (nonatomic, strong) NSArray *defaultClassBlackList;
 @property (nonatomic, strong) NSArray *defaultMethodBlackList;
 @property (nonatomic, strong) NSDictionary *supportedTypeDict;
+@property (nonatomic, strong) NSDictionary *tracePositionDict;
 @property (nonatomic, strong) NSMutableDictionary *blockCache;
-@property (atomic, assign) int deep;
+@property (nonatomic, assign) int deep;
 
 // 初始化内部默认黑名单
 - (void)initDefaultClassBlackList;
 - (void)initDefaultMethodBlackList;
 // 初始化所支持类型编码的字典
 - (void)initSupportedTypeDict;
+// 初始化trace位置字典
+- (void)initTracePositionDict;
 // 根据错误码返回错误描述
 + (NSString *)errorString:(OMTErrorCode)errorCode;
 // 判断函数数组里任意函数是否存在递归循环调用
 + (BOOL)detectInfiniteLoopAtSelectorArray:(NSArray *)selectorArray;
 // 获取target的description
-- (NSString *)descriptionWithTarget:(id)target selector:(SEL)selector returnState:(BOOL)returnState;
+- (NSString *)descriptionWithTarget:(id)target class:(Class)cls selector:(SEL)sel targetPosition:(OMTTargetPosition)targetPosition;
 // 判断类是否在内部默认黑名单中
 - (BOOL)isClassInBlackList:(NSString *)className;
 // 判断方法是否在内部默认黑名单中
 - (BOOL)isSelectorInBlackList:(NSString *)methodName;
 // 判断类型编码是否可以处理
 - (BOOL)isSupportedType:(NSString *)typeEncode;
+// 获取方法名对应的trace位置
+- (OMTTracePosition)tracePosition:(NSString *)methodName;
 // block相关
 - (void)setBlock:(OMTBlock *)block forKey:(NSString *)key;
 - (OMTBlock *)blockforKey:(NSString *)key;
 - (OMTBlock *)blockWithTarget:(id)target;
+// 原子操作deep++，返回原值
+- (int)atomicAddDeep;
+// 原子操作deep--
+- (void)atomicIncDeep;
 // 根据条件跟踪目标类的方法
 - (void)traceMethodWithClass:(Class)cls condition:(OMTConditionBlock)condition;
 // 判断方法是否支持跟踪
@@ -334,17 +352,24 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
         [self initDefaultClassBlackList];
         [self initDefaultMethodBlackList];
         [self initSupportedTypeDict];
+        [self initTracePositionDict];
 
         self.disableTrace = NO;
         self.logLevel = OMTLogLevelDebug;
         self.blockCache = [NSMutableDictionary dictionary];
         self.deep = 0;
+        
+        pthread_mutex_init(&_blockMutex, NULL);
+        pthread_mutex_init(&_deepMutex, NULL);
+        
     }
     return self;
 }
 
 - (void)dealloc
 {
+    pthread_mutex_destroy(&_blockMutex);
+    pthread_mutex_destroy(&_deepMutex);
 }
 
 - (void)initDefaultClassBlackList
@@ -359,14 +384,9 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
 
 - (void)initDefaultMethodBlackList
 {
-    self.defaultMethodBlackList = @[@"init",
-                                    @"alloc",
-                                    @"allocWithZone:",
-                                    @"new",
-                                    @".cxx_destruct", /* UIViewController */
+    self.defaultMethodBlackList = @[@".cxx_destruct",
                                     @"_isDeallocating",
                                     @"release",
-                                    @"dealloc",
                                     @"autorelease",
                                     @"recycle",
                                     @"retain",
@@ -420,7 +440,20 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
                                [NSString stringWithUTF8String:@encode(CGAffineTransform)] : @"(CGAffineTransform)",
                                [NSString stringWithUTF8String:@encode(UIOffset)] : @"(UIOffset)",
                                [NSString stringWithUTF8String:@encode(UIEdgeInsets)] : @"(UIEdgeInsets)",
-                               @"@?":@"(block)", // block类型
+                               @"@?" : @"(block)", // block类型
+                               }; // 添加更多类型
+}
+
+- (void)initTracePositionDict
+{
+    // @interface NSObject
+    self.tracePositionDict = @{@"initialize" : @(OMTTracePositionBefore | OMTTracePositionAfter),
+                               @"init" : @(OMTTracePositionBefore | OMTTracePositionAfter),
+                               @"new" : @(OMTTracePositionBefore | OMTTracePositionAfter),
+                               @"allocWithZone:" : @(OMTTracePositionBefore | OMTTracePositionAfter),
+                               @"alloc" : @(OMTTracePositionBefore | OMTTracePositionAfter),
+                               @"dealloc" : @(OMTTracePositionBefore),
+                               @"finalize" : @(OMTTracePositionBefore),
                                }; // 添加更多类型
 }
 
@@ -482,10 +515,10 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     return exists;
 }
 
-- (NSString *)descriptionWithTarget:(id)target selector:(SEL)selector returnState:(BOOL)returnState
+- (NSString *)descriptionWithTarget:(id)target class:(Class)cls selector:(SEL)sel targetPosition:(OMTTargetPosition)targetPosition
 {
-    if (nil != self.delegate && [self.delegate respondsToSelector:@selector(descriptionWithTarget:selector:returnState:)]) {
-        return [self.delegate descriptionWithTarget:target selector:selector returnState:returnState];
+    if (nil != self.delegate && [self.delegate respondsToSelector:@selector(descriptionWithTarget:class:selector:targetPosition:)]) {
+        return [self.delegate descriptionWithTarget:target class:cls selector:sel targetPosition:targetPosition];
     } else {
         return [target description];
     }
@@ -506,35 +539,56 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     return [self.supportedTypeDict.allKeys containsObject:typeEncode];
 }
 
+- (OMTTracePosition)tracePosition:(NSString *)methodName
+{
+    OMTTracePosition defaultPostion = OMTTracePositionBefore | OMTTracePositionAfter;
+    return [self.tracePositionDict.allKeys containsObject:methodName] ? [self.tracePositionDict[methodName] intValue]: defaultPostion;
+}
+
 - (void)setBlock:(OMTBlock *)block forKey:(NSString *)key
 {
-    @synchronized (self) {
-        [self.blockCache setObject:block forKey:key];
-    }
+    pthread_mutex_lock(&_blockMutex);
+    [self.blockCache setObject:block forKey:key];
+    pthread_mutex_unlock(&_blockMutex);
 }
 
 - (OMTBlock *)blockforKey:(NSString *)key
 {
-    @synchronized (self) {
-        return [self.blockCache objectForKey:key];
-    }
+    pthread_mutex_lock(&_blockMutex);
+    OMTBlock *block = [self.blockCache objectForKey:key];
+    pthread_mutex_unlock(&_blockMutex);
+    return block;
 }
 
 - (OMTBlock *)blockWithTarget:(id)target
 {
-    @synchronized (self) {
-        Class cls = [target class];
-        OMTBlock *block = [self.blockCache objectForKey:NSStringFromClass(cls)];
-        while (nil == block) {
-            cls = [cls superclass];
-            if (nil == cls) {
-                break;
-            }
-            block = [self.blockCache objectForKey:NSStringFromClass(cls)];
+    pthread_mutex_lock(&_blockMutex);
+    Class cls = [target class];
+    OMTBlock *block = [self.blockCache objectForKey:NSStringFromClass(cls)];
+    while (nil == block) {
+        cls = [cls superclass];
+        if (nil == cls) {
+            break;
         }
-        
-        return block;
+        block = [self.blockCache objectForKey:NSStringFromClass(cls)];
     }
+    pthread_mutex_unlock(&_blockMutex);
+    return block;
+}
+
+- (int)atomicAddDeep
+{
+    pthread_mutex_lock(&_deepMutex);
+    int deep = _deep++;
+    pthread_mutex_unlock(&_deepMutex);
+    return deep;
+}
+
+- (void)atomicIncDeep
+{
+    pthread_mutex_lock(&_deepMutex);
+    _deep--;
+    pthread_mutex_unlock(&_deepMutex);
 }
 
 - (void)traceMethodWithClass:(Class)cls condition:(OMTConditionBlock)condition
@@ -692,25 +746,30 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     Class originClass = [invocation omt_originClass];
     SEL originSelector = [invocation omt_originSelector];
     // XXX 通过堆栈搜索递归调用会有挺大的性能损耗。但确实不知道怎么处理比较好，了解的麻烦知会email一下我
+    // 其实主要是因为description调用，当遇到description则用加递归锁，直接跳过runBefore和runAfer，但是如果description内部有条件等待，可能会死锁.
     BOOL disableTrace = [[self class] detectInfiniteLoopAtSelectorArray:@[OMTBlockRunBeforeSelector,
                                                                           OMTBlockRunAfterSelector,
-                                                                          OMTInvocationGetReturnValueSelector,
-                                                                          OMTInvocationGetArgumentsSelector]];
-    int deep = self.deep++;
+                                                                          OMTDescriptionWithTargetSelector]];
+    int deep = [self atomicAddDeep];
     
     if (!disableTrace) {
         OMTBlock *block = [self blockWithTarget:invocation.target];
+        OMTTracePosition postion = [self tracePosition:NSStringFromSelector(originSelector)];
+        NSDate *start;
         
         // 1 原方法调用前回调
-        [block runBefore:invocation.target class:originClass sel:originSelector args:[invocation omt_getArguments] deep:deep];
-        NSDate *start = [NSDate date];
+        if (postion & OMTTracePositionBefore) {
+            [block runBefore:invocation.target class:originClass sel:originSelector args:[invocation omt_getArguments] deep:deep];
+        }
+        if (postion & OMTTracePositionAfter) {
+            start = [NSDate date];
+        }
         
         // 2 调用原方法
         [invocation invoke];
         
         // 3 原方法调用后回调
-        // hooking dealloc only valid before position
-        if (![NSStringFromSelector(originSelector) isEqualToString:@"dealloc"]) {
+        if (postion & OMTTracePositionAfter) {
             NSTimeInterval interval = [[NSDate date] timeIntervalSinceDate:start];
             [block runAfter:invocation.target class:originClass sel:originSelector ret:[invocation omt_getReturnValue] deep:deep interval:interval];
         }
@@ -719,7 +778,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
         [invocation invoke];
     }
     
-    self.deep--;
+    [self atomicIncDeep];
 }
 
 @end
@@ -922,7 +981,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     else if (0 == strcmp(returnType, @encode(id))) {
         __unsafe_unretained id ret_temp;
         [self getReturnValue:&ret_temp];
-        ret = [[OCMethodTrace sharedInstance] descriptionWithTarget:ret_temp selector:[self omt_originSelector] returnState:YES];
+        ret = [[OCMethodTrace sharedInstance] descriptionWithTarget:ret_temp class:[self omt_originClass] selector:[self omt_originSelector] targetPosition:OMTTargetPositionAfterReturnValue];
     }
     else if (0 == strcmp(returnType, @encode(Class))) {
         Class ret_temp;
@@ -1026,7 +1085,7 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
         else if (0 == strcmp(argumentType, @encode(id))) {
             __unsafe_unretained id arg_temp;
             [self getArgument:&arg_temp atIndex:i];
-            arg = [[OCMethodTrace sharedInstance] descriptionWithTarget:self.target selector:[self omt_originSelector] returnState:NO];
+            arg = [[OCMethodTrace sharedInstance] descriptionWithTarget:arg_temp class:[arg_temp class] selector:[self omt_originSelector] targetPosition:OMTTargetPositionBeforeArgument];
         }
         else if (0 == strcmp(argumentType, @encode(Class))) {
             Class arg_temp;

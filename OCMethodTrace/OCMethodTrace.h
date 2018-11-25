@@ -42,16 +42,27 @@ typedef void (^OMTBeforeBlock)(id target, Class cls, SEL sel, NSArray *args, int
 // @param interval 执行方法的ms耗时
 typedef void (^OMTAfterBlock)(id target, Class cls, SEL sel, id ret, int deep, NSTimeInterval interval);
 
+// target位置
+typedef NS_ENUM(NSUInteger, OMTTargetPosition) {
+    OMTTargetPositionBeforeSelf = 0,    // before-调用者self
+    OMTTargetPositionBeforeArgument,    // before-参数
+    OMTTargetPositionAfterSelf,         // after-调用者self
+    OMTTargetPositionAfterReturnValue,  // after-返回值
+    OMTTargetPositionMax,
+};
+
+// 日志级别
 typedef NS_ENUM(NSUInteger, OMTLogLevel) {
-    OMTLogLevelError    = 0,
-    OMTLogLevelDebug    = 1,
+    OMTLogLevelError = 0,
+    OMTLogLevelDebug,
+    OMTLogLevelMax,
 };
 
 @protocol OCMethodTraceDelegate <NSObject>
 
 @optional
-// description回调。获取target的description，returnState表示是否正在或者即将进入after返回状态
-- (NSString *)descriptionWithTarget:(id)target selector:(SEL)selector returnState:(BOOL)returnState;
+// 获取target的description回调
+- (NSString *)descriptionWithTarget:(id)target class:(Class)cls selector:(SEL)sel targetPosition:(OMTTargetPosition)targetPosition;
 // 日志回调
 - (void)log:(OMTLogLevel)level format:(NSString *)format, ... NS_FORMAT_FUNCTION(2,3);
 
