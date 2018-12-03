@@ -16,9 +16,10 @@
 #define MDCONFIG_TRACE_KEY                  @"MethodTrace"
 #define MDCONFIG_LOG_LEVEL_KEY              @"LogLevel"
 #define MDCONFIG_LOG_WHEN_KEY               @"LogWhen"
-#define MDCONFIG_LOG_REGEX_STRING_KEY       @"LogRegexString"   // 仅LogWhen=2有效
+#define MDCONFIG_LOG_REGEX_STRING_KEY       @"LogRegexString"   // 仅LogWhen=MDTraceLogWhenRegexString有效
 #define MDCONFIG_TRACE_FLAG_KEY             @"TraceFlag"
 #define MDCONFIG_TRACE_OBJECT_KEY           @"TraceObject"
+#define MDCONFIG_CLASS_REGEX_STRING_KEY     @"ClassRegexString" // 仅TraceObject=MDTraceObjectRegexClass有效
 #define MDCONFIG_CORE_CLASS_LIST            @"CORE_CLASS_LIST"
 #define MDCONFIG_USER_CLASS_LIST            @"USER_CLASS_LIST"
 #define MDCONFIG_TRACE_MODE_KEY             @"TraceMode"
@@ -53,10 +54,16 @@ typedef NS_OPTIONS(NSUInteger, MDTraceFlag) {
 
 // Trace对象
 typedef NS_ENUM(NSUInteger, MDTraceObject) {
-    MDTraceObjectNone           = 0,    // 屏蔽trace所有类
-    MDTraceObjectUserClass      = 1,    // trace用户指定类的方法，需要考虑USER_CLASS_LIST+"CORE_CLASS_LIST和USER_CLASS_LIST交集"
-    MDTraceObjectCoreClass      = 2,    // trace引擎指定类的方法(仅测试验证使用)，仅需要考虑CORE_CLASS_LIST
-    MDTraceObjectAllClass       = 3,    // trace所有类的方法(仅测试验证使用)，需要考虑USER_CLASS_LIST+CORE_CLASS_LIST两者所有的类
+    // 屏蔽trace所有类
+    MDTraceObjectNone           = 0,
+    // trace引擎指定类的方法(仅测试验证使用)，仅需要考虑CORE_CLASS_LIST
+    MDTraceObjectCoreClass      = 1,
+    // trace用户指定类的方法，需要考虑USER_CLASS_LIST + "USER_CLASS_LIST和CORE_CLASS_LIST交集"
+    MDTraceObjectUserClass      = 2,
+    // trace用户指定类 + 正则匹配类的方法，需要考虑USER_CLASS_LIST + "USER_CLASS_LIST和CORE_CLASS_LIST交集" +
+    // "匹配ClassRegexString的CLASS_LIST和CORE_CLASS_LIST交集"
+    MDTraceObjectRegexClass     = 3,
+    
     MDTraceObjectMax
 };
 
