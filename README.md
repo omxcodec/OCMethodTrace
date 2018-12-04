@@ -58,7 +58,8 @@ OCMethodTrace - Trace Any Objective-C Method Calls
 #### ClassRegexString：类正则匹配字符串，仅TraceObject=MDTraceObjectRegexClass有效
     每个匹配的类使用默认类配置(可以理解成一个默认的User类)。使用场景：在不确定trace哪些类的情况下，批量trace一些有规律命名方式的类，匹配字符串如：“Notification|^CM|(F|f)igCaptureSource”
 
-    USER_CLASS_LIST和CORE_CLASS_LIST的关系：
+
+#### USER_CLASS_LIST和CORE_CLASS_LIST的关系：
     * CORE_CLASS_LIST：存在的意义在于，OCMethodTrace框架(引擎)内部也需要调用一些OC类方法，为了保证整个框架可以跑起来，避免trace到框架内部使用到的类导致的打印递归循环，所以，需排除这些指定类的全部方法或者部分方法。
     * USER_CLASS_LIST：用户自己指定的类，可以任意发挥。但是如果CORE_CLASS_LIST有相同的类，会优先CORE_CLASS_LIST中的配置。合并算法详见"+[MDTraceClassInfo mergeInfoWithCoreInfo:userInfo:userInfo:]"
 
