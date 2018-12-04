@@ -41,19 +41,19 @@ OCMethodTrace - Trace Any Objective-C Method Calls
     
 ### 指定类配置：
 #### USER_CLASS_LIST：用户指定类列表，必须定义
-##### TraceMode： Trace模式，对应MDTraceMode，可选定义，默认值：1
-    0：MDTraceModeOff，屏蔽trace方法
-    1：MDTraceModeAll，trace所有方法
-    2：MDTraceModeIncludeWhiteList，trace包含"白名单方法列表"的方法
-    3：MDTraceModeExcludeBlackList，trace排除"黑名单方法列表"的方法
-##### TraceFlag：定义同全局配置，但是粒度更小，属于某个类范围内，可选定义，默认值：0x00
-##### MethodWhiteList：白名单方法列表，可选定义，但MDTraceModeIncludeWhiteList时必须定义
-##### MethodBlackList：黑名单方法列表，可选定义，但MDTraceModeExcludeBlackList时必须定义
+    TraceMode： Trace模式，对应MDTraceMode，可选定义，默认值：1
+        0：MDTraceModeOff，屏蔽trace方法
+        1：MDTraceModeAll，trace所有方法
+        2：MDTraceModeIncludeWhiteList，trace包含"白名单方法列表"的方法
+        3：MDTraceModeExcludeBlackList，trace排除"黑名单方法列表"的方法
+    TraceFlag：定义同全局配置，但是粒度更小，属于某个类范围内，可选定义，默认值：0x00
+    MethodWhiteList：白名单方法列表，可选定义，但MDTraceModeIncludeWhiteList时必须定义
+    MethodBlackList：黑名单方法列表，可选定义，但MDTraceModeExcludeBlackList时必须定义
 
 #### CORE_CLASS_LIST：引擎指定类列表，必须定义
-##### TraceMode：定义同USER_CLASS_LIST的TraceMode，但是仅支持MDTraceModeOff和MDTraceModeExcludeBlackList
-##### TraceFlag：定义同全局配置，但是粒度更小，属于某个类范围内，可选定义，默认值：0x00
-##### MethodBlackList：黑名单方法列表，可选定义，但MDTraceModeExcludeBlackList时必须定义
+    TraceMode：定义同USER_CLASS_LIST的TraceMode，但是仅支持MDTraceModeOff和MDTraceModeExcludeBlackList
+    TraceFlag：定义同全局配置，但是粒度更小，属于某个类范围内，可选定义，默认值：0x00
+    MethodBlackList：黑名单方法列表，可选定义，但MDTraceModeExcludeBlackList时必须定义
 
 #### ClassRegexString：类正则匹配字符串，仅TraceObject=MDTraceObjectRegexClass有效
     每个匹配的类使用默认类配置(可以理解成一个默认的User类)。使用场景：在不确定trace哪些类的情况下，批量trace一些有规律命名方式的类，匹配字符串如：“Notification|^CM|(F|f)igCaptureSource”
