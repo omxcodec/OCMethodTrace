@@ -336,11 +336,6 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
 
 #pragma mark - Trace utils
 
-+ (NSString *)docPath
-{
-    return [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-}
-
 // 安全检查
 + (id)safeCheck:(id)content class:(Class)cls
 {

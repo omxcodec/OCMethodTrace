@@ -627,7 +627,6 @@ static BOOL isCGAffineTransform(const char *type) {return [omt_structName(type) 
     method_getReturnType(method, returnTypeCString, sizeof(returnTypeCString));
     const char *returnType = returnTypeCString;
     
-    
     NSString *selectorName = NSStringFromSelector(method_getName(method));
     if ([selectorName hasPrefix:@"omt_"]) {
         // 1 内部方法不处理
