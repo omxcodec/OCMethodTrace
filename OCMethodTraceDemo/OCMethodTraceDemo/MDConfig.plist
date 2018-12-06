@@ -13,7 +13,7 @@
 		<key>TraceFlag</key>
 		<integer>2</integer>
 		<key>TraceObject</key>
-		<integer>1</integer>
+		<integer>2</integer>
 		<key>ClassRegexString</key>
 		<string></string>
 		<key>CORE_CLASS_LIST</key>
