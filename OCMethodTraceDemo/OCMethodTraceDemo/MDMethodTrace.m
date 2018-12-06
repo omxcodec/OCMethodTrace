@@ -561,11 +561,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
         return;
     }
     
-    MDLog(@" ");
-    MDLog(@"////////////////////////////////////////////////////////////////////////////////");
-    MDLog(@"// Usage: https://github.com/omxcodec/OCMethodTrace/blob/master/README.md");
-    MDLog(@"////////////////////////////////////////////////////////////////////////////////");
-    MDLog(@" ");
+    MDLog(TRACE_README);
     
     self.config         = [NSMutableDictionary dictionaryWithDictionary:config];
     self.logLevel       = [SAFE_CHECK(self.config[MDCONFIG_LOG_LEVEL_KEY], NSNumber) unsignedIntegerValue];
@@ -826,7 +822,7 @@ typedef NS_ENUM(NSUInteger, MDTraceSource) {
                 self.logWhen == MDTraceLogWhenVolume ||
                 (self.logWhen == MDTraceLogWhenRegexString && [[self class] isMatchRegexString:self.logRegexString inputString:logString])) {
                 self.numberOfPendingLog++;
-                MDLog("%@", logString);
+                MDLog(@"%@", logString);
             }
         } after:^(id target, Class cls, SEL sel, id ret, int deep, NSTimeInterval interval) {
             // 因为多线程并发，numberOfPendingLog变量维护的输出状态有可能并不是那么准，但是打印调试可以容忍

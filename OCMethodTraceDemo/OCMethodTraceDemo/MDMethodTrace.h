@@ -11,6 +11,8 @@
 #ifndef MethodTrace_h
 #define MethodTrace_h
 
+#define TRACE_README @"\n📚--------------------OCMethodTrace(Usage)-------------------📚\nhttps://github.com/omxcodec/OCMethodTrace/blob/master/README.md\n📚--------------------OCMethodTrace(Usage)-------------------📚"
+
 #import <UIKit/UIKit.h>
 
 @interface MDMethodTrace : NSObject
